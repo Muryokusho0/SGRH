@@ -13,6 +13,10 @@ namespace SGRH.Web
                 .AddInteractiveServerComponents();
 
             var app = builder.Build();
+            builder.Services.AddHttpClient("SGRH.Api", client =>
+            {
+                client.BaseAddress = new Uri("https://localhost:5001/");
+            });
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
