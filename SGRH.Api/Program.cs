@@ -1,10 +1,19 @@
 namespace SGRH.Api
 {
+    /// <summary>
+    /// Defines the <see cref="Program" />
+    /// </summary>
     public class Program
     {
+        /// <summary>
+        /// The Main
+        /// </summary>
+        /// <param name="args">The args<see cref="string[]"/></param>
         public static void Main(string[] args)
         {
+
             var builder = WebApplication.CreateBuilder(args);
+            builder.Configuration.GetConnectionString("Default");
 
             // Add services to the container.
 
@@ -14,6 +23,7 @@ namespace SGRH.Api
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
+            app.UseHttpsRedirection();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -23,7 +33,6 @@ namespace SGRH.Api
             }
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
@@ -37,7 +46,6 @@ namespace SGRH.Api
             var jwtIssuer = builder.Configuration["Jwt:Issuer"];
             var jwtAudience = builder.Configuration["Jwt:Audience"];
             var jwtKey = builder.Configuration["Jwt:Key"];
-
         }
     }
 }

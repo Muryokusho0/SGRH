@@ -18,9 +18,6 @@
     <Project Path="SGRH.Infrastructure/SGRH.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/Web/">
-    <Project Path="SGRH.Web/SGRH.Web.ApiService/SGRH.Web.ApiService.csproj" />
-    <Project Path="SGRH.Web/SGRH.Web.AppHost/SGRH.Web.AppHost.csproj" />
-    <Project Path="SGRH.Web/SGRH.Web.ServiceDefaults/SGRH.Web.ServiceDefaults.csproj" />
-    <Project Path="SGRH.Web/SGRH.Web.Web/SGRH.Web.Web.csproj" />
+    <Project Path="SGRH.Web/SGRH.Web/SGRH.Web.csproj" Id="fc497c98-9f49-428f-ad3d-8e961d2548e9" />
   </Folder>
 </Solution>
