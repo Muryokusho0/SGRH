@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Clientes\" />
+    <Folder Include="Contracts\" />
+    <Folder Include="Habitaciones\" />
+    <Folder Include="Seguridad\" />
+    <Folder Include="Reservas\" />
+    <Folder Include="TarifasTemporadas\" />
+    <Folder Include="ServiciosAdicionales\" />
+    <Folder Include="Reportes\" />
+    <Folder Include="AuditoriaTrazabilidad\" />
+    <Folder Include="Base\" />
+  </ItemGroup>
+
+</Project>

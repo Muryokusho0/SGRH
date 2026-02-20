@@ -1,0 +1,19 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.0">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>2486866e-aa04-4e67-9091-d88259767128</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\SGRH.Desktop\SGRH.Desktop\SGRH.Desktop.csproj">
+      <SetTargetFramework>TargetFramework=net10.0</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="..\SGRH.Web.ApiService\SGRH.Web.ApiService.csproj" />
+    <ProjectReference Include="..\SGRH.Web.Web\SGRH.Web.Web.csproj" />
+  </ItemGroup>
+
+</Project>

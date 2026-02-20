@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/API/">
+    <Project Path="SGRH.Api/SGRH.Api.csproj" />
+  </Folder>
+  <Folder Name="/Application/">
+    <Project Path="SGRH.Application/SGRH.Application.csproj" />
+  </Folder>
+  <Folder Name="/Core/">
+    <Project Path="SGRH.Auth/SGRH.Auth.csproj" />
+    <Project Path="SGRH.Domain/SGRH.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Desktop/">
+    <Project Path="SGRH.Desktop/SGRH.Desktop/SGRH.Desktop.csproj">
+      <Deploy Solution="Debug|*" />
+    </Project>
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="SGRH.Infrastructure/SGRH.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Web/">
+    <Project Path="SGRH.Web/SGRH.Web.ApiService/SGRH.Web.ApiService.csproj" />
+    <Project Path="SGRH.Web/SGRH.Web.AppHost/SGRH.Web.AppHost.csproj" />
+    <Project Path="SGRH.Web/SGRH.Web.ServiceDefaults/SGRH.Web.ServiceDefaults.csproj" />
+    <Project Path="SGRH.Web/SGRH.Web.Web/SGRH.Web.Web.csproj" />
+  </Folder>
+</Solution>
