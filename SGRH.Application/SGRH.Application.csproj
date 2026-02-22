@@ -7,19 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="UseCasesReservas\" />
-    <Folder Include="UseCasesHabitaciones\" />
-    <Folder Include="UseCasesTarifasTemporadas\" />
-    <Folder Include="UseCasesServiciosAdicionales\" />
-    <Folder Include="UseCasesReportes\" />
-    <Folder Include="UseCasesAuditoria\" />
-    <Folder Include="Security\" />
-    <Folder Include="DTOs\" />
-    <Folder Include="UseCasesClientes\" />
+    <ProjectReference Include="..\SGRH.Domain\SGRH.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SGRH.Domain\SGRH.Domain.csproj" />
+    <Folder Include="Common\Validators\" />
   </ItemGroup>
 
 </Project>
