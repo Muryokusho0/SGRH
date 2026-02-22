@@ -75,7 +75,6 @@
     <ItemGroup>
       <Folder Include="ApiClient\" />
       <Folder Include="Auth\" />
-      <Folder Include="Pages\Administrador\" />
       <Folder Include="Pages\Recepcionista\" />
     </ItemGroup>
 

@@ -18,13 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="EmailSES\" />
-    <Folder Include="Persistence\Mappings\" />
-    <Folder Include="Persistence\Repositories\" />
-    <Folder Include="StorageS3\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\SGRH.Domain\SGRH.Domain.csproj" />
   </ItemGroup>
 
