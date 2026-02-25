@@ -11,7 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="NewFolder\" />
+    <Folder Include="Abstractions\Authentication\" />
+    <Folder Include="Abstractions\Clock\" />
+    <Folder Include="Abstractions\CurrentUser\" />
   </ItemGroup>
 
 </Project>
