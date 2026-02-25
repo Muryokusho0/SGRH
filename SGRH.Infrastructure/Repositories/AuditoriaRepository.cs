@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Infrastructure.Persistence.UnitOfWork
+namespace SGRH.Infrastructure.Repositories
 {
-    internal class UnitOfWork
+    internal class AuditoriaRepository
     {
     }
 }

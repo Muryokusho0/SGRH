@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="Exceptions\" />
     <Folder Include="Entity\Clientes\" />
     <Folder Include="Entity\Habitaciones\" />
     <Folder Include="Entity\" />
@@ -16,6 +17,7 @@
     <Folder Include="Entity\ServiciosAdicionales\" />
     <Folder Include="Entity\Reportes\" />
     <Folder Include="Entity\AuditoriaTrazabilidad\" />
+    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

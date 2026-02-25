@@ -2,21 +2,27 @@
   <Folder Name="/API/">
     <Project Path="SGRH.Api/SGRH.Api.csproj" />
   </Folder>
-  <Folder Name="/Application/">
-    <Project Path="SGRH.Application/SGRH.Application.csproj" />
-  </Folder>
-  <Folder Name="/Core/">
-    <Project Path="SGRH.Auth/SGRH.Auth.csproj" />
-    <Project Path="SGRH.Domain/SGRH.Domain.csproj" />
-  </Folder>
-  <Folder Name="/Desktop/">
+  <Folder Name="/App/">
     <Project Path="SGRH.Desktop/SGRH.Desktop/SGRH.Desktop.csproj">
       <Deploy Solution="Debug|*" />
     </Project>
   </Folder>
+  <Folder Name="/Core/">
+    <Project Path="SGRH.Application/SGRH.Application.csproj" />
+    <Project Path="SGRH.Auth/SGRH.Auth.csproj" />
+    <Project Path="SGRH.Domain/SGRH.Domain.csproj" />
+  </Folder>
+  <Folder Name="/docs/" />
+  <Folder Name="/docs/DecisionRecords/" />
+  <Folder Name="/docs/SAD/" />
+  <Folder Name="/docs/SRS/" />
   <Folder Name="/Infrastructure/">
     <Project Path="SGRH.Infrastructure/SGRH.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/Test/" />
+  <Folder Name="/Test/SGRH.Application.Tests/" />
+  <Folder Name="/Test/SGRH.Domain.Tests/" />
+  <Folder Name="/Test/SGRH.IntegrationTests/" />
   <Folder Name="/Web/">
     <Project Path="SGRH.Web/SGRH.Web/SGRH.Web.csproj" Id="fc497c98-9f49-428f-ad3d-8e961d2548e9" />
   </Folder>

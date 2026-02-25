@@ -12,6 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Contracts\Responses\" />
+    <Folder Include="Contracts\Requests\" />
     <Folder Include="Filters\" />
     <Folder Include="Middlewares\" />
   </ItemGroup>
