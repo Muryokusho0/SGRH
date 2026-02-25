@@ -13,7 +13,9 @@
     <Project Path="SGRH.Domain/SGRH.Domain.csproj" />
   </Folder>
   <Folder Name="/docs/" />
-  <Folder Name="/docs/DecisionRecords/" />
+  <Folder Name="/docs/DecisionRecords/">
+    <File Path="../../../../ADR-0001-Database-Engine-Change-MySQL-to-SQLServer.txt" />
+  </Folder>
   <Folder Name="/docs/SAD/" />
   <Folder Name="/docs/SRS/" />
   <Folder Name="/Infrastructure/">
