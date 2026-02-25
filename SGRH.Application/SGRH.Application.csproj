@@ -10,8 +10,4 @@
     <ProjectReference Include="..\SGRH.Domain\SGRH.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Common\Validators\" />
-  </ItemGroup>
-
 </Project>
