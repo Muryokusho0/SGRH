@@ -10,4 +10,8 @@
     <ProjectReference Include="..\SGRH.Domain\SGRH.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="NewFolder\" />
+  </ItemGroup>
+
 </Project>
