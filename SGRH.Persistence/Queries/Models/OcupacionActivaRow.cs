@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Domain.Abstractions.Persistence
+namespace SGRH.Infrastructure.Persistence.Queries.Models
 {
-    internal class IReservaRepository
+    internal class OcupacionActivaRow
     {
     }
 }

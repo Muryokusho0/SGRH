@@ -4,9 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Infrastructure.Repositories
+namespace SGRH.Domain.Enums
 {
-    internal class ClientesRepository
+    public enum RolUsuario
     {
+        ADMIN,
+        RECEPCIONISTA,
+        CLIENTE
     }
 }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Domain.Contracts.Persistence
+namespace SGRH.Domain.Abstractions.Persistence
 {
     internal class IReporteRepository
     {

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Domain.Contracts.Storage
+namespace SGRH.Domain.Abstractions.Storage
 {
     internal class IStorageService
     {

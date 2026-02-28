@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace SGRH.Domain.Base
 {
-    internal class AuditableEntity : EntityBase
+    public abstract class AuditableEntity : EntityBase
     {
-
+        public DateTime CreatedAtUtc { get; protected set; }
     }
 }

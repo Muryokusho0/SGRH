@@ -3,12 +3,12 @@
     <Project Path="SGRH.Api/SGRH.Api.csproj" />
   </Folder>
   <Folder Name="/App/">
+    <Project Path="SGRH.Application/SGRH.Application.csproj" />
     <Project Path="SGRH.Desktop/SGRH.Desktop/SGRH.Desktop.csproj">
       <Deploy Solution="Debug|*" />
     </Project>
   </Folder>
   <Folder Name="/Core/">
-    <Project Path="SGRH.Application/SGRH.Application.csproj" />
     <Project Path="SGRH.Auth/SGRH.Auth.csproj" />
     <Project Path="SGRH.Domain/SGRH.Domain.csproj" />
   </Folder>
@@ -20,6 +20,10 @@
   <Folder Name="/docs/SRS/" />
   <Folder Name="/Infrastructure/">
     <Project Path="SGRH.Infrastructure/SGRH.Infrastructure.csproj" />
+    <Project Path="SGRH.Persistence/SGRH.Persistence.csproj" Id="b507bb43-8292-4373-944e-4e6f8544f304" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
   </Folder>
   <Folder Name="/Test/" />
   <Folder Name="/Test/SGRH.Application.Tests/" />

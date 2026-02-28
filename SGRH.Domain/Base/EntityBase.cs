@@ -6,7 +6,19 @@ using System.Threading.Tasks;
 
 namespace SGRH.Domain.Base
 {
-    internal class EntityBase
+    public abstract class EntityBase
     {
+        protected abstract object GetKey();
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not EntityBase other)
+                return false;
+
+            return GetKey().Equals(other.GetKey());
+        }
+
+        public override int GetHashCode()
+            => GetKey().GetHashCode();
     }
 }

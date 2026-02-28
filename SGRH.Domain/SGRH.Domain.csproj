@@ -8,15 +8,6 @@
 
   <ItemGroup>
     <Folder Include="Exceptions\" />
-    <Folder Include="Entities\Clientes\" />
-    <Folder Include="Entities\Habitaciones\" />
-    <Folder Include="Entities\" />
-    <Folder Include="Entities\Seguridad\" />
-    <Folder Include="Entities\Reservas\" />
-    <Folder Include="Entities\TarifasTemporadas\" />
-    <Folder Include="Entities\ServiciosAdicionales\" />
-    <Folder Include="Entities\Reportes\" />
-    <Folder Include="Entities\AuditoriaTrazabilidad\" />
     <Folder Include="Services\" />
   </ItemGroup>
 

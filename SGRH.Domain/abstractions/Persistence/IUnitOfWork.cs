@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Domain.abstractions.Persistence
+namespace SGRH.Domain.Abstractions.Persistence;
+
+public interface IUnitOfWork
 {
-    internal class IUnitOfWork
-    {
-    }
 }

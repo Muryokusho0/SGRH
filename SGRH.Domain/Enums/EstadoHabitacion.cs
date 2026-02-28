@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Domain.Abstractions.Persistence
+namespace SGRH.Domain.Enums;
+public enum EstadoHabitacion
 {
-    internal class IReservaRepository
-    {
-    }
+    Disponible,
+    Ocupada,
+    Mantenimiento,
+    Limpieza
 }

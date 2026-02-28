@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Infrastructure.Repositories
+namespace SGRH.Infrastructure.Persistence.Repositories.Base
 {
-    internal class ReservasRepository
+    internal class RepositoryBase
     {
     }
 }

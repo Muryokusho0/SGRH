@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Infrastructure.Repositories
+namespace SGRH.Infrastructure.Persistence.Queries
 {
-    internal class TarifasTemporadasRepository
+    internal class ReportesQueryService
     {
     }
 }

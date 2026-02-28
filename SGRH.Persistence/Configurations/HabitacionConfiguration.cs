@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Domain.Abstractions.Persistence
+namespace SGRH.Infrastructure.Persistence.Configurations
 {
-    internal class IReservaRepository
+    internal class HabitacionConfiguration
     {
     }
 }

@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Infrastructure.Persistence.DbContext
+namespace SGRH.Domain.Enums;
+
+public enum EstadoReserva
 {
-    internal class SgrhDbContext
-    {
-    }
+    Pendiente,
+    Confirmada,
+    Cancelada
 }

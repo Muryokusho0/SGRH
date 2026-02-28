@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SGRH.Domain.Abstractions.Persistence
 {
-    internal class IReservaRepository
+    internal class IUsuarioRepository
     {
     }
 }

@@ -26,6 +26,7 @@
     <ProjectReference Include="..\SGRH.Application\SGRH.Application.csproj" />
     <ProjectReference Include="..\SGRH.Auth\SGRH.Auth.csproj" />
     <ProjectReference Include="..\SGRH.Infrastructure\SGRH.Infrastructure.csproj" />
+    <ProjectReference Include="..\SGRH.Persistence\SGRH.Persistence.csproj" />
   </ItemGroup>
 
 </Project>
