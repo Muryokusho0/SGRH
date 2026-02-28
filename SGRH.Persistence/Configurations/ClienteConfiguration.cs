@@ -3,10 +3,56 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SGRH.Domain.Entities.Clientes;
 
-namespace SGRH.Infrastructure.Persistence.Configurations
+namespace SGRH.Persistence.Configurations;
+
+public sealed class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
 {
-    internal class ClienteConfiguration
+    public void Configure(EntityTypeBuilder<Cliente> b)
     {
+        b.ToTable("Cliente", "dbo");
+
+        b.HasKey(x => x.ClienteId);
+
+        b.Property(x => x.ClienteId)
+            .HasColumnName("ClienteId")
+            .ValueGeneratedOnAdd();
+
+        b.Property(x => x.NationalID)
+            .HasColumnName("NationalID")
+            .HasMaxLength(20)
+            .IsUnicode(false)
+            .IsRequired();
+
+        b.HasIndex(x => x.NationalID).IsUnique();
+
+        b.Property(x => x.NombreCliente)
+            .HasColumnName("nombreCliente")
+            .HasMaxLength(100)
+            .IsUnicode(true)
+            .IsRequired();
+
+        b.Property(x => x.ApellidoCliente)
+            .HasColumnName("apellidoCliente")
+            .HasMaxLength(100)
+            .IsUnicode(true)
+            .IsRequired();
+
+        b.Property(x => x.Email)
+            .HasColumnName("email")
+            .HasMaxLength(100)
+            .IsUnicode(false)
+            .IsRequired();
+
+        b.HasIndex(x => x.Email).IsUnique();
+
+        b.Property(x => x.Telefono)
+            .HasColumnName("telefono")
+            .HasMaxLength(20)
+            .IsUnicode(false)
+            .IsRequired();
     }
 }

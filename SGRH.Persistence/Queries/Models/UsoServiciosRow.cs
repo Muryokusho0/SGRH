@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Infrastructure.Persistence.Queries.Models
+namespace SGRH.Persistence.Queries.Models
 {
     internal class UsoServiciosRow
     {

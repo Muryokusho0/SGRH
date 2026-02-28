@@ -1,12 +1,69 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SGRH.Domain.Entities.Reservas;
+using SGRH.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Infrastructure.Persistence.Configurations
+namespace SGRH.Persistence.Configurations;
+
+public sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
 {
-    internal class ReservaConfiguration
+    public void Configure(EntityTypeBuilder<Reserva> b)
     {
+        b.ToTable("Reserva", "dbo");
+
+        b.HasKey(x => x.ReservaId);
+
+        b.Property(x => x.ReservaId)
+            .HasColumnName("ReservaId")
+            .ValueGeneratedOnAdd();
+
+        b.Property(x => x.ClienteId)
+            .HasColumnName("ClienteId")
+            .IsRequired();
+
+        // SQL: EstadoReserva VARCHAR(50) CHECK(...)
+        b.Property(x => x.EstadoReserva)
+            .HasColumnName("EstadoReserva")
+            .HasConversion(v => v.ToString(), v => Enum.Parse<EstadoReserva>(v))
+            .HasMaxLength(50)
+            .IsUnicode(false)
+            .IsRequired();
+
+        b.Property(x => x.FechaReserva)
+            .HasColumnName("FechaReserva")
+            .HasColumnType("datetime")
+            .IsRequired();
+
+        b.Property(x => x.FechaEntrada)
+            .HasColumnName("FechaEntrada")
+            .HasColumnType("datetime")
+            .IsRequired();
+
+        b.Property(x => x.FechaSalida)
+            .HasColumnName("FechaSalida")
+            .HasColumnType("datetime")
+            .IsRequired();
+
+        b.HasIndex(x => new { x.ClienteId, x.FechaReserva })
+            .HasDatabaseName("IX_Reserva_Cliente_Fecha")
+            .IsDescending(false, true)
+            .IncludeProperties(x => new { x.EstadoReserva, x.FechaEntrada, x.FechaSalida });
+
+        b.HasIndex(x => new { x.FechaEntrada, x.FechaSalida, x.EstadoReserva })
+            .HasDatabaseName("IX_Reserva_Rango_Estado")
+            .IncludeProperties(x => new { x.ClienteId, x.FechaReserva });
+
+        b.HasOne<SGRH.Domain.Entities.Clientes.Cliente>()
+            .WithMany()
+            .HasForeignKey(x => x.ClienteId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        b.Navigation(x => x.Habitaciones).UsePropertyAccessMode(PropertyAccessMode.Field);
+        b.Navigation(x => x.Servicios).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

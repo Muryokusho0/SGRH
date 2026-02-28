@@ -4,9 +4,6 @@
   </Folder>
   <Folder Name="/App/">
     <Project Path="SGRH.Application/SGRH.Application.csproj" />
-    <Project Path="SGRH.Desktop/SGRH.Desktop/SGRH.Desktop.csproj">
-      <Deploy Solution="Debug|*" />
-    </Project>
   </Folder>
   <Folder Name="/Core/">
     <Project Path="SGRH.Auth/SGRH.Auth.csproj" />

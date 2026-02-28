@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using SGRH.Domain.Base;
 using SGRH.Domain.Common;
 
-namespace SGRH.Domain.Entities.TarifasTemporadas;
+namespace SGRH.Domain.Entities.Temporadas;
 
 public sealed class Temporada : EntityBase
 {
