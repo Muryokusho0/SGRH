@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -56,25 +57,25 @@ public sealed class AuditoriaEvento : EntityBase
         Guard.AgainstNullOrWhiteSpace(modulo, nameof(modulo), 100);
 
         if (rol is not null && rol.Length > 20)
-            throw new DomainException("Rol excede 20 caracteres.");
+            throw new ValidationException("Rol excede 20 caracteres.");
 
         if (usernameSnapshot is not null && usernameSnapshot.Length > 100)
-            throw new DomainException("UsernameSnapshot excede 100 caracteres.");
+            throw new ValidationException("UsernameSnapshot excede 100 caracteres.");
 
         if (entidad is not null && entidad.Length > 100)
-            throw new DomainException("Entidad excede 100 caracteres.");
+            throw new ValidationException("Entidad excede 100 caracteres.");
 
         if (entidadId is not null && entidadId.Length > 64)
-            throw new DomainException("EntidadId excede 64 caracteres.");
+            throw new ValidationException("EntidadId excede 64 caracteres.");
 
         if (ipOrigen is not null && ipOrigen.Length > 45)
-            throw new DomainException("IpOrigen excede 45 caracteres.");
+            throw new ValidationException("IpOrigen excede 45 caracteres.");
 
         if (userAgent is not null && userAgent.Length > 255)
-            throw new DomainException("UserAgent excede 255 caracteres.");
+            throw new ValidationException("UserAgent excede 255 caracteres.");
 
         if (descripcion is not null && descripcion.Length > 500)
-            throw new DomainException("Descripcion excede 500 caracteres.");
+            throw new ValidationException("Descripcion excede 500 caracteres.");
 
         UsuarioId = usuarioId;
         Rol = rol;

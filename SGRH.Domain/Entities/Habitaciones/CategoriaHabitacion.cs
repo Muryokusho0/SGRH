@@ -2,6 +2,7 @@
 using SGRH.Domain.Common;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,10 +32,10 @@ public sealed class CategoriaHabitacion : EntityBase
         Guard.AgainstNullOrWhiteSpace(descripcion, nameof(descripcion), 255);
 
         if (capacidad <= 0)
-            throw new DomainException("Capacidad debe ser mayor que cero.");
+            throw new ValidationException("Capacidad debe ser mayor que cero.");
 
         if (precioBase <= 0)
-            throw new DomainException("Precio base debe ser mayor que cero.");
+            throw new ValidationException("Precio base debe ser mayor que cero.");
 
         NombreCategoria = nombreCategoria;
         Capacidad = capacidad;

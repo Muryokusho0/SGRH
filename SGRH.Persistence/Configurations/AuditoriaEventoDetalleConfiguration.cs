@@ -11,35 +11,12 @@ namespace SGRH.Persistence.Configurations;
 
 public sealed class AuditoriaEventoDetalleConfiguration : IEntityTypeConfiguration<AuditoriaEventoDetalle>
 {
-    public void Configure(EntityTypeBuilder<AuditoriaEventoDetalle> b)
+    public void Configure(EntityTypeBuilder<AuditoriaEventoDetalle> builder)
     {
-        b.ToTable("AuditoriaEventoDetalle", "dbo");
+        builder.ToTable("AuditoriaEventoDetalle");
+        builder.HasKey(x => x.AuditoriaEventoDetalleId);
 
-        b.HasKey(x => x.AuditoriaEventoDetalleId);
-
-        b.Property(x => x.AuditoriaEventoDetalleId)
-            .HasColumnName("AuditoriaEventoDetalleId")
-            .ValueGeneratedOnAdd();
-
-        b.Property(x => x.AuditoriaEventoId)
-            .HasColumnName("AuditoriaEventoId")
-            .IsRequired();
-
-        b.Property(x => x.Campo)
-            .HasColumnName("Campo")
-            .HasMaxLength(128)
-            .IsUnicode(true)
-            .IsRequired();
-
-        b.Property(x => x.ValorAnterior)
-            .HasColumnName("ValorAnterior")
-            .HasColumnType("nvarchar(max)");
-
-        b.Property(x => x.ValorNuevo)
-            .HasColumnName("ValorNuevo")
-            .HasColumnType("nvarchar(max)");
-
-        b.HasOne<AuditoriaEvento>()
+        builder.HasOne<AuditoriaEvento>()
             .WithMany()
             .HasForeignKey(x => x.AuditoriaEventoId)
             .OnDelete(DeleteBehavior.Cascade);

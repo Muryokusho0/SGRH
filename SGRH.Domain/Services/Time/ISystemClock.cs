@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Domain.Base
+namespace SGRH.Domain.Services.Time;
+
+public interface ISystemClock
 {
-    internal class OperationResult
-    {
-    }
+    DateTime UtcNow { get; }
 }

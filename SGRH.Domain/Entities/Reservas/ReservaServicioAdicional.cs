@@ -15,7 +15,9 @@ public sealed class ReservaServicioAdicional : EntityBase
     public int ServicioAdicionalId { get; private set; }
     public int Cantidad { get; private set; } = 1;
     public decimal PrecioUnitarioAplicado { get; private set; } // snapshot
-    public decimal SubTotalAplicado => Cantidad * PrecioUnitarioAplicado; // en SQL es computed persisted
+
+    private decimal _subTotalAplicado;
+    public decimal SubTotalAplicado => _subTotalAplicado;
 
     private ReservaServicioAdicional() { }
 

@@ -1,18 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SGRH.Domain.Entities;
+using SGRH.Domain.Entities.Auditoria;
+using SGRH.Domain.Entities.Clientes;
+using SGRH.Domain.Entities.Habitaciones;
+using SGRH.Domain.Entities.Reservas;
+using SGRH.Domain.Entities.Seguridad;
+using SGRH.Domain.Entities.Servicios;
+using SGRH.Domain.Entities.Temporadas;
+using SGRH.Persistence.Configurations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using SGRH.Domain.Entities.Clientes;
-using SGRH.Domain.Entities.Habitaciones;
-using SGRH.Domain.Entities.Reservas;
-using SGRH.Domain.Entities.Servicios;
-using SGRH.Domain.Entities.Seguridad;
-using SGRH.Domain.Entities.Temporadas;
-using SGRH.Domain.Entities.Auditoria;
 
 namespace SGRH.Persistence.Context;
 
@@ -55,6 +56,17 @@ public class SGRHDbContext : Microsoft.EntityFrameworkCore.DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SGRHDbContext).Assembly);
+
+        modelBuilder.ApplyConfiguration(new TarifaTemporadaConfiguration());
+        modelBuilder.ApplyConfiguration(new ReservaServicioAdicionalConfiguration());
+        modelBuilder.ApplyConfiguration(new DetalleReservaConfiguration());
+        modelBuilder.ApplyConfiguration(new HabitacionHistorialConfiguration());
+        modelBuilder.ApplyConfiguration(new AuditoriaEventoDetalleConfiguration());
+        modelBuilder.ApplyConfiguration(new ServicioCategoriaPrecioConfiguration());
+        modelBuilder.ApplyConfiguration(new ServicioTemporadaConfiguration());
+
         base.OnModelCreating(modelBuilder);
     }
+
+
 }

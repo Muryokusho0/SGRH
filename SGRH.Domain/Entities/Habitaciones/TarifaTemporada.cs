@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ public sealed class TarifaTemporada : EntityBase
         decimal precio)
     {
         if (precio <= 0)
-            throw new DomainException("Precio debe ser mayor que cero.");
+            throw new ValidationException("Precio debe ser mayor que cero.");
 
         CategoriaHabitacionId = categoriaHabitacionId;
         TemporadaId = temporadaId;

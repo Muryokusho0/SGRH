@@ -1,24 +1,24 @@
 {
   "profiles": {
-    "http": {
+    "SGRH.Api (http)": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5058",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5058"
+      }
     },
-    "https": {
+    "SGRH.Api (https)": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:7058;http://localhost:5058",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "dotnetRunMessages": true,
-      "applicationUrl": "https://localhost:7058;http://localhost:5058"
+      }
     },
     "IIS Express": {
       "commandName": "IISExpress",

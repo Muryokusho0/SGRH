@@ -7,6 +7,7 @@ using SGRH.Domain.Base;
 using SGRH.Domain.Common;
 using SGRH.Domain.Enums;
 using SGRH.Domain.Abstractions.Policies;
+using SGRH.Domain.Exceptions;
 
 namespace SGRH.Domain.Entities.Reservas;
 
@@ -47,10 +48,10 @@ public sealed class Reserva : EntityBase
     private void EnsureEditable()
     {
         if (EstadoReserva == EstadoReserva.Confirmada)
-            throw new DomainException("Reserva confirmada: no se permiten cambios (snapshot inmutable).");
+            throw new BusinessRuleViolationException("Reserva confirmada: no se permiten cambios (snapshot inmutable).");
 
         if (EstadoReserva == EstadoReserva.Cancelada)
-            throw new DomainException("Reserva cancelada: no se permiten cambios.");
+            throw new BusinessRuleViolationException("Reserva cancelada: no se permiten cambios.");
     }
 
     // ---------------------------
@@ -92,7 +93,7 @@ public sealed class Reserva : EntityBase
         Guard.AgainstOutOfRange(habitacionId, nameof(habitacionId), 0);
 
         if (_habitaciones.Any(x => x.HabitacionId == habitacionId))
-            throw new DomainException("La habitación ya está agregada a la reserva.");
+            throw new BusinessRuleViolationException("La habitación ya está agregada a la reserva.");
 
         policy.EnsureHabitacionDisponible(habitacionId, FechaEntrada, FechaSalida, ReservaId == 0 ? null : ReservaId);
         policy.EnsureHabitacionNoEnMantenimiento(habitacionId, FechaEntrada, FechaSalida);
@@ -113,10 +114,8 @@ public sealed class Reserva : EntityBase
         Guard.AgainstNull(policy, nameof(policy));
         EnsureEditable();
 
-        var item = _habitaciones.FirstOrDefault(x => x.HabitacionId == habitacionId);
-        if (item is null)
-            throw new DomainException("La habitación no existe en la reserva.");
-
+        var item = _habitaciones.FirstOrDefault(x => x.HabitacionId == habitacionId)
+            ?? throw new BusinessRuleViolationException("La habitación no existe en la reserva.");
         _habitaciones.Remove(item);
 
         // Si quitas habitaciones, los servicios pueden cambiar de precio (MAX por categoría)
@@ -136,10 +135,10 @@ public sealed class Reserva : EntityBase
         Guard.AgainstOutOfRange(cantidad, nameof(cantidad), 0);
 
         if (_habitaciones.Count == 0)
-            throw new DomainException("No se puede agregar un servicio sin habitaciones (se requiere para calcular precio por categoría).");
+            throw new BusinessRuleViolationException("No se puede agregar un servicio sin habitaciones (se requiere para calcular precio por categoría).");
 
         if (_servicios.Any(x => x.ServicioAdicionalId == servicioAdicionalId))
-            throw new DomainException("El servicio ya existe en la reserva (actualiza la cantidad).");
+            throw new BusinessRuleViolationException("El servicio ya existe en la reserva (actualiza la cantidad).");
 
         var temporadaId = policy.GetTemporadaId(FechaEntrada);
         policy.EnsureServicioDisponibleEnTemporada(servicioAdicionalId, temporadaId);
@@ -156,9 +155,8 @@ public sealed class Reserva : EntityBase
         EnsureEditable();
         Guard.AgainstOutOfRange(nuevaCantidad, nameof(nuevaCantidad), 0);
 
-        var s = _servicios.FirstOrDefault(x => x.ServicioAdicionalId == servicioAdicionalId);
-        if (s is null)
-            throw new DomainException("El servicio no existe en la reserva.");
+        var s = _servicios.FirstOrDefault(x => x.ServicioAdicionalId == servicioAdicionalId)
+            ??throw new BusinessRuleViolationException("El servicio no existe en la reserva.");
 
         s.CambiarCantidad(nuevaCantidad);
     }
@@ -167,9 +165,8 @@ public sealed class Reserva : EntityBase
     {
         EnsureEditable();
 
-        var s = _servicios.FirstOrDefault(x => x.ServicioAdicionalId == servicioAdicionalId);
-        if (s is null)
-            throw new DomainException("El servicio no existe en la reserva.");
+        var s = _servicios.FirstOrDefault(x => x.ServicioAdicionalId == servicioAdicionalId)
+            ??throw new BusinessRuleViolationException("El servicio no existe en la reserva.");
 
         _servicios.Remove(s);
     }
@@ -180,10 +177,10 @@ public sealed class Reserva : EntityBase
     public void Confirmar()
     {
         if (EstadoReserva == EstadoReserva.Cancelada)
-            throw new DomainException("No se puede confirmar una reserva cancelada.");
+            throw new BusinessRuleViolationException("No se puede confirmar una reserva cancelada.");
 
         if (_habitaciones.Count == 0)
-            throw new DomainException("No se puede confirmar una reserva sin habitaciones.");
+            throw new BusinessRuleViolationException("No se puede confirmar una reserva sin habitaciones.");
 
         EstadoReserva = EstadoReserva.Confirmada;
     }
@@ -192,8 +189,7 @@ public sealed class Reserva : EntityBase
     {
         if (EstadoReserva == EstadoReserva.Confirmada)
         {
-            // Tu SQL permite cancelar confirmadas (no lo bloquea por definición),
-            // pero si tu negocio lo permite, lo dejamos permitido.
+            // SQL permite cancelar confirmadas (no lo bloquea por definición),
         }
 
         EstadoReserva = EstadoReserva.Cancelada;

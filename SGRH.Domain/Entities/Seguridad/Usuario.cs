@@ -7,6 +7,7 @@ using SGRH.Domain.Base;
 using SGRH.Domain.Common;
 using SGRH.Domain.Enums;
 using SGRH.Domain.Entities.Clientes;
+using System.ComponentModel.DataAnnotations;
 
 namespace SGRH.Domain.Entities.Seguridad;
 
@@ -31,11 +32,11 @@ namespace SGRH.Domain.Entities.Seguridad;
             Guard.AgainstNullOrWhiteSpace(passwordHash, nameof(passwordHash), 255);
 
             if (rol == RolUsuario.CLIENTE && clienteId is null)
-                throw new DomainException("CLIENTE requiere ClienteId.");
+                throw new ValidationException("CLIENTE requiere ClienteId.");
 
             if ((rol == RolUsuario.ADMIN || rol == RolUsuario.RECEPCIONISTA)
                 && clienteId is not null)
-                throw new DomainException("ADMIN o RECEPCIONISTA no deben tener ClienteId.");
+                throw new ValidationException("ADMIN o RECEPCIONISTA no deben tener ClienteId.");
 
             ClienteId = clienteId;
             Username = username;

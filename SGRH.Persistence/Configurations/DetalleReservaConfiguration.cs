@@ -13,44 +13,21 @@ public sealed class DetalleReservaConfiguration : IEntityTypeConfiguration<Detal
 {
     public void Configure(EntityTypeBuilder<DetalleReserva> b)
     {
-        b.ToTable("DetalleReserva", "dbo");
-
+        b.ToTable("DetalleReserva");
         b.HasKey(x => x.DetalleReservaId);
 
-        b.Property(x => x.DetalleReservaId)
-            .HasColumnName("DetalleReservaId")
-            .ValueGeneratedOnAdd();
-
-        b.Property(x => x.ReservaId)
-            .HasColumnName("ReservaId")
-            .IsRequired();
-
-        b.Property(x => x.HabitacionId)
-            .HasColumnName("HabitacionId")
-            .IsRequired();
-
-        b.Property(x => x.TarifaAplicada)
-            .HasColumnName("TarifaAplicada")
+        b.Property(x => x.TarifaAplicada)   
             .HasColumnType("decimal(10,2)")
             .IsRequired();
-
-        b.HasIndex(x => new { x.HabitacionId, x.ReservaId })
-            .IsUnique()
-            .HasDatabaseName("IX_DetalleReserva_Habitacion")
-            .IncludeProperties(x => x.TarifaAplicada);
-
-        b.HasIndex(x => x.ReservaId)
-            .HasDatabaseName("IX_DetalleReserva_Reserva")
-            .IncludeProperties(x => new { x.HabitacionId, x.TarifaAplicada });
 
         b.HasOne<Reserva>()
             .WithMany()
             .HasForeignKey(x => x.ReservaId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
 
         b.HasOne<SGRH.Domain.Entities.Habitaciones.Habitacion>()
             .WithMany()
             .HasForeignKey(x => x.HabitacionId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

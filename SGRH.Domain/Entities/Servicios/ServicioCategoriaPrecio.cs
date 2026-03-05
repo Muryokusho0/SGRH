@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,7 +23,7 @@ public sealed class ServicioCategoriaPrecio : EntityBase
         decimal precio)
     {
         if (precio <= 0)
-            throw new DomainException("Precio inválido.");
+            throw new ValidationException("Precio inválido.");
 
         ServicioAdicionalId = servicioAdicionalId;
         CategoriaHabitacionId = categoriaHabitacionId;

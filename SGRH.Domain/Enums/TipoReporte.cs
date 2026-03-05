@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Domain.Abstractions.Email
+namespace SGRH.Domain.Enums;
+
+public enum TipoReporte
 {
-    internal class IEmailService
-    {
-    }
+    Ocupacion,
+    Ingresos,
+    UsoServicios
 }

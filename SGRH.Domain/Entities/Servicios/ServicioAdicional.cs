@@ -2,6 +2,7 @@
 using SGRH.Domain.Common;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,8 +15,8 @@ public sealed class ServicioAdicional : EntityBase
     public string NombreServicio { get; private set; }
     public string TipoServicio { get; private set; }
 
-    private readonly List<ServicioCategoriaPrecio> _precios = new();
-    private readonly List<ServicioTemporada> _temporadas = new();
+    private readonly List<ServicioCategoriaPrecio> _precios = [];
+    private readonly List<ServicioTemporada> _temporadas = [];
     public IReadOnlyCollection<ServicioCategoriaPrecio> Precios => _precios;
     public IReadOnlyCollection<ServicioTemporada> Temporadas => _temporadas;
 
@@ -41,10 +42,10 @@ public sealed class ServicioAdicional : EntityBase
     public void AgregarPrecio(int categoriaHabitacionId, decimal precio)
     {
         if (precio <= 0)
-            throw new DomainException("Precio debe ser mayor que cero.");
+            throw new ValidationException("Precio debe ser mayor que cero.");
 
         if (_precios.Any(p => p.CategoriaHabitacionId == categoriaHabitacionId))
-            throw new DomainException("Ya existe precio para esa categoría.");
+            throw new ValidationException("Ya existe precio para esa categoría.");
 
         _precios.Add(new ServicioCategoriaPrecio(
             ServicioAdicionalId,

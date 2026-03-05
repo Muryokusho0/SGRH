@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,7 +23,7 @@ public sealed class Temporada : EntityBase
         Guard.AgainstNullOrWhiteSpace(nombreTemporada, nameof(nombreTemporada), 50);
 
         if (fechaInicio >= fechaFin)
-            throw new DomainException("FechaInicio debe ser menor que FechaFin (exclusiva).");
+            throw new ValidationException("FechaInicio debe ser menor que FechaFin (exclusiva).");
 
         NombreTemporada = nombreTemporada;
         FechaInicio = fechaInicio;

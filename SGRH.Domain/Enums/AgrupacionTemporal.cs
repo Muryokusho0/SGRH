@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Persistence.Repositories
+namespace SGRH.Domain.Enums;
+
+public enum AgrupacionTemporal
 {
-    internal class ReporteRepositoryEF
-    {
-    }
+    Diario,
+    Mensual,
+    Anual
 }

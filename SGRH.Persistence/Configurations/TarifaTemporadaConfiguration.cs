@@ -1,52 +1,34 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SGRH.Domain.Entities.Habitaciones;
+using SGRH.Domain.Entities.Temporadas;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SGRH.Domain.Entities.Habitaciones;
 
 namespace SGRH.Persistence.Configurations;
 
 public sealed class TarifaTemporadaConfiguration : IEntityTypeConfiguration<TarifaTemporada>
 {
-    public void Configure(EntityTypeBuilder<TarifaTemporada> b)
+    public void Configure(EntityTypeBuilder<TarifaTemporada> builder)
     {
-        b.ToTable("TarifaTemporada", "dbo");
+        builder.ToTable("TarifaTemporada");
+        builder.HasKey(x => x.TarifaTemporadaId);
 
-        b.HasKey(x => x.TarifaTemporadaId);
-
-        b.Property(x => x.TarifaTemporadaId)
-            .HasColumnName("TarifaTemporadaId")
-            .ValueGeneratedOnAdd();
-
-        b.Property(x => x.CategoriaHabitacionId)
-            .HasColumnName("CategoriaHabitacionId")
+        builder.Property(x => x.Precio)
+            .HasPrecision(10, 2)
             .IsRequired();
 
-        b.Property(x => x.TemporadaId)
-            .HasColumnName("TemporadaId")
-            .IsRequired();
-
-        b.Property(x => x.Precio)
-            .HasColumnName("Precio")
-            .HasColumnType("decimal(10,2)")
-            .IsRequired();
-
-        b.HasIndex(x => new { x.TemporadaId, x.CategoriaHabitacionId })
-            .IsUnique()
-            .HasDatabaseName("IX_TarifaTemporada_Categoria")
-            .IncludeProperties(x => x.Precio);
-
-        b.HasOne<CategoriaHabitacion>()
+        builder.HasOne<CategoriaHabitacion>()
             .WithMany()
             .HasForeignKey(x => x.CategoriaHabitacionId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.Restrict);
 
-        b.HasOne<SGRH.Domain.Entities.Temporadas.Temporada>()
+        builder.HasOne<Temporada>()
             .WithMany()
             .HasForeignKey(x => x.TemporadaId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

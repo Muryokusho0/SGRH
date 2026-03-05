@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,10 +24,10 @@ public sealed class Habitacion : EntityBase
     public Habitacion(int categoriaHabitacionId, int numeroHabitacion, int piso)
     {
         if (numeroHabitacion <= 0)
-            throw new DomainException("Número de habitación inválido.");
+            throw new ValidationException("Número de habitación inválido.");
 
         if (piso <= 0)
-            throw new DomainException("Piso inválido.");
+            throw new ValidationException("Piso inválido.");
 
         CategoriaHabitacionId = categoriaHabitacionId;
         NumeroHabitacion = numeroHabitacion;

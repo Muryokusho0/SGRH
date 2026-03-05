@@ -7,13 +7,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SGRH.Domain.Abstractions.Repositories;
 
 namespace SGRH.Persistence.Repositories;
-
-public interface IReservaRepository : IRepository<Reserva, int>
-{
-    Task<Reserva?> GetByIdWithDetallesAsync(int reservaId, CancellationToken ct = default);
-}
 
 public sealed class ReservaRepositoryEF : Repository<Reserva, int>, IReservaRepository
 {
@@ -24,4 +20,10 @@ public sealed class ReservaRepositoryEF : Repository<Reserva, int>, IReservaRepo
             .Include(r => r.Habitaciones)
             .Include(r => r.Servicios)
             .FirstOrDefaultAsync(r => r.ReservaId == reservaId, ct);
+
+    public Task<List<Reserva>> GetByClienteAsync(int clienteId, CancellationToken ct = default)
+        => Db.Reservas
+            .Where(r => r.ClienteId == clienteId)
+            .OrderByDescending(r => r.FechaReserva)
+            .ToListAsync(ct);
 }

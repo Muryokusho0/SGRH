@@ -5,17 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore.Storage;
 using SGRH.Persistence.Context;
+using SGRH.Domain.Abstractions.Repositories;
 
 namespace SGRH.Persistence.UnitOfWork;
-
-public interface IUnitOfWork
-{
-    Task<int> SaveChangesAsync(CancellationToken ct = default);
-
-    Task BeginTransactionAsync(CancellationToken ct = default);
-    Task CommitAsync(CancellationToken ct = default);
-    Task RollbackAsync(CancellationToken ct = default);
-}
 
 public sealed class UnitOfWork : IUnitOfWork
 {

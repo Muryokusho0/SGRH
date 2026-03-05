@@ -1,41 +1,30 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SGRH.Domain.Entities.Servicios;
+using SGRH.Domain.Entities.Temporadas;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SGRH.Domain.Entities.Servicios;
 
 namespace SGRH.Persistence.Configurations;
 
 public sealed class ServicioTemporadaConfiguration : IEntityTypeConfiguration<ServicioTemporada>
 {
-    public void Configure(EntityTypeBuilder<ServicioTemporada> b)
+    public void Configure(EntityTypeBuilder<ServicioTemporada> builder)
     {
-        b.ToTable("ServicioTemporada", "dbo");
+        builder.ToTable("ServicioTemporada");
+        builder.HasKey(x => new { x.ServicioAdicionalId, x.TemporadaId });
 
-        b.HasKey(x => new { x.ServicioAdicionalId, x.TemporadaId });
-
-        b.Property(x => x.ServicioAdicionalId)
-            .HasColumnName("ServicioAdicionalId")
-            .IsRequired();
-
-        b.Property(x => x.TemporadaId)
-            .HasColumnName("TemporadaId")
-            .IsRequired();
-
-        b.HasIndex(x => new { x.TemporadaId, x.ServicioAdicionalId })
-            .HasDatabaseName("IX_ServicioTemporada_Temporada");
-
-        b.HasOne<SGRH.Domain.Entities.Servicios.ServicioAdicional>()
+        builder.HasOne<ServicioAdicional>()
             .WithMany()
             .HasForeignKey(x => x.ServicioAdicionalId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.Restrict);
 
-        b.HasOne<SGRH.Domain.Entities.Temporadas.Temporada>()
+        builder.HasOne<Temporada>()
             .WithMany()
             .HasForeignKey(x => x.TemporadaId)
-            .OnDelete(DeleteBehavior.NoAction);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
