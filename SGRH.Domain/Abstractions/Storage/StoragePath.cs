@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SGRH.Domain.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,14 +13,10 @@ public sealed class StoragePath
 
     public StoragePath(string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("StoragePath es requerido.", nameof(value));
-
+        Guard.AgainstNullOrWhiteSpace(value, nameof(value), 1024);
+        // Normalizar: backslashes → forward slash, sin slash al inicio
         Value = value.Replace("\\", "/").TrimStart('/');
     }
 
-    public override string ToString()
-    {
-        return Value;
-    }
+    public override string ToString() => Value;
 }

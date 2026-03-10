@@ -13,33 +13,27 @@ public sealed class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
 {
     public void Configure(EntityTypeBuilder<Cliente> b)
     {
-        b.ToTable("Cliente", "dbo");
+        b.ToTable("Cliente");
 
         b.HasKey(x => x.ClienteId);
 
         b.Property(x => x.ClienteId)
-            .HasColumnName("ClienteId")
             .ValueGeneratedOnAdd();
 
         b.Property(x => x.NationalID)
             .HasColumnName("NationalID")
             .HasMaxLength(20)
-            .IsUnicode(false)
-            .IsRequired();
+            .IsUnicode(false);
 
         b.HasIndex(x => x.NationalID).IsUnique();
 
         b.Property(x => x.NombreCliente)
             .HasColumnName("nombreCliente")
-            .HasMaxLength(100)
-            .IsUnicode(true)
-            .IsRequired();
+            .HasMaxLength(100);
 
         b.Property(x => x.ApellidoCliente)
             .HasColumnName("apellidoCliente")
-            .HasMaxLength(100)
-            .IsUnicode(true)
-            .IsRequired();
+            .HasMaxLength(100);
 
         b.Property(x => x.Email)
             .HasColumnName("email")

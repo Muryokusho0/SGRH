@@ -14,7 +14,7 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
 {
     public void Configure(EntityTypeBuilder<Usuario> b)
     {
-        b.ToTable("Usuario", "dbo");
+        b.ToTable("Usuario");
 
         b.HasKey(x => x.UsuarioId);
 
@@ -23,7 +23,12 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
             .ValueGeneratedOnAdd();
 
         b.Property(x => x.ClienteId)
-            .HasColumnName("ClienteId");
+            .IsRequired();
+
+        b.HasOne(d => d.Cliente)
+            .WithOne(p => p.Usuario)
+            .HasForeignKey<Usuario>(d => d.ClienteId)
+            .IsRequired(false);
 
         b.Property(x => x.Username)
             .HasColumnName("Username")

@@ -22,14 +22,18 @@ public sealed class ServicioCategoriaPrecioConfiguration : IEntityTypeConfigurat
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
-        builder.HasOne<ServicioAdicional>()
-            .WithMany()
+        builder.HasOne(p => p.ServicioAdicional)
+            .WithMany(d => d.ServicioCategoriaPrecios)
             .HasForeignKey(x => x.ServicioAdicionalId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<CategoriaHabitacion>()
-            .WithMany()
+        builder.HasOne(p => p.CategoriaHabitacion)
+            .WithMany(d => d.CategoriaPrecios)
             .HasForeignKey(x => x.CategoriaHabitacionId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => new { x.CategoriaHabitacionId, x.ServicioAdicionalId })
+            .HasDatabaseName("IX_ServicioCategoriaPrecio_Categoria")
+    .       IncludeProperties(x => new { x.Precio });
     }
 }

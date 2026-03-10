@@ -39,4 +39,12 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     public virtual void Update(TEntity entity) => Set.Update(entity);
     public virtual void Remove(TEntity entity) => Set.Remove(entity);
     public virtual IQueryable<TEntity> Query() => Set.AsQueryable();
+
+    public interface IUnitOfWork : IDisposable
+    {
+        Task<int> SaveChangesAsync(CancellationToken ct = default);
+        Task BeginTransactionAsync();
+        Task CommitAsync();
+        Task RollbackAsync();
+    }
 }

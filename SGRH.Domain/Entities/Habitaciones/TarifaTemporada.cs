@@ -9,6 +9,7 @@ using SGRH.Domain.Common;
 
 
 namespace SGRH.Domain.Entities.Habitaciones;
+
 public sealed class TarifaTemporada : EntityBase
 {
     public int TarifaTemporadaId { get; private set; }
@@ -18,17 +19,21 @@ public sealed class TarifaTemporada : EntityBase
 
     private TarifaTemporada() { }
 
-    public TarifaTemporada(
-        int categoriaHabitacionId,
-        int temporadaId,
-        decimal precio)
+    public TarifaTemporada(int categoriaHabitacionId, int temporadaId, decimal precio)
     {
-        if (precio <= 0)
-            throw new ValidationException("Precio debe ser mayor que cero.");
+        Guard.AgainstOutOfRange(categoriaHabitacionId, nameof(categoriaHabitacionId), 0);
+        Guard.AgainstOutOfRange(temporadaId, nameof(temporadaId), 0);
+        Guard.AgainstOutOfRange(precio, nameof(precio), 0m);
 
         CategoriaHabitacionId = categoriaHabitacionId;
         TemporadaId = temporadaId;
         Precio = precio;
+    }
+
+    public void ActualizarPrecio(decimal nuevoPrecio)
+    {
+        Guard.AgainstOutOfRange(nuevoPrecio, nameof(nuevoPrecio), 0m);
+        Precio = nuevoPrecio;
     }
 
     protected override object GetKey() => TarifaTemporadaId;

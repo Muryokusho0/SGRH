@@ -16,19 +16,28 @@ public sealed class TarifaTemporadaConfiguration : IEntityTypeConfiguration<Tari
     {
         builder.ToTable("TarifaTemporada");
         builder.HasKey(x => x.TarifaTemporadaId);
+        builder.Property(x => x.TarifaTemporadaId)
+            .ValueGeneratedOnAdd()
+            .IsRequired();
+
 
         builder.Property(x => x.Precio)
             .HasPrecision(10, 2)
             .IsRequired();
 
-        builder.HasOne<CategoriaHabitacion>()
-            .WithMany()
-            .HasForeignKey(x => x.CategoriaHabitacionId)
+        builder.HasOne(p => p.CategoriaHabitacion)
+            .WithMany(d => d.TarifaCategoria)
+            .HasForeignKey(p => p.CategoriaHabitacionId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<Temporada>()
-            .WithMany()
+        builder.HasOne(p => p.Temporada)
+            .WithMany(d => d.TarifaTemporadas)
             .HasForeignKey(x => x.TemporadaId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => new { x.TemporadaId, x.CategoriaHabitacionId })
+            .HasDatabaseName("IX_TarifaTemporada_Categoria")
+            .IsUnique() 
+            .IncludeProperties(x => x.Precio); 
     }
 }

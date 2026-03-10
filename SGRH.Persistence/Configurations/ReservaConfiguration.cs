@@ -14,7 +14,7 @@ public sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
 {
     public void Configure(EntityTypeBuilder<Reserva> b)
     {
-        b.ToTable("Reserva", "dbo");
+        b.ToTable("Reserva");
 
         b.HasKey(x => x.ReservaId);
 
@@ -25,6 +25,12 @@ public sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
         b.Property(x => x.ClienteId)
             .HasColumnName("ClienteId")
             .IsRequired();
+
+        b.HasOne(d => d.Cliente)
+            .WithOne(p => p.Reserva)
+            .HasForeignKey<Reserva>(d => d.ClienteId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
 
         // SQL: EstadoReserva VARCHAR(50) CHECK(...)
         b.Property(x => x.EstadoReserva)
@@ -57,13 +63,5 @@ public sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
         b.HasIndex(x => new { x.FechaEntrada, x.FechaSalida, x.EstadoReserva })
             .HasDatabaseName("IX_Reserva_Rango_Estado")
             .IncludeProperties(x => new { x.ClienteId, x.FechaReserva });
-
-        b.HasOne<SGRH.Domain.Entities.Clientes.Cliente>()
-            .WithMany()
-            .HasForeignKey(x => x.ClienteId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        b.Navigation(x => x.Habitaciones).UsePropertyAccessMode(PropertyAccessMode.Field);
-        b.Navigation(x => x.Servicios).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

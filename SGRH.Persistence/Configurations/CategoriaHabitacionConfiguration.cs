@@ -45,8 +45,5 @@ public sealed class CategoriaHabitacionConfiguration : IEntityTypeConfiguration<
             .HasColumnName("precioBase")
             .HasColumnType("decimal(10,2)")
             .IsRequired();
-
-        // Relación 1:N (CategoriaHabitacion -> TarifaTemporada) solo por FK en TarifaTemporada.
-        b.Navigation(x => x.Tarifas).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

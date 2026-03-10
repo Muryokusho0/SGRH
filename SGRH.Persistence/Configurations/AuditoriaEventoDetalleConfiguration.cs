@@ -11,14 +11,23 @@ namespace SGRH.Persistence.Configurations;
 
 public sealed class AuditoriaEventoDetalleConfiguration : IEntityTypeConfiguration<AuditoriaEventoDetalle>
 {
-    public void Configure(EntityTypeBuilder<AuditoriaEventoDetalle> builder)
+    public void Configure(EntityTypeBuilder<AuditoriaEventoDetalle> b)
     {
-        builder.ToTable("AuditoriaEventoDetalle");
-        builder.HasKey(x => x.AuditoriaEventoDetalleId);
+        b.ToTable("AuditoriaEventoDetalle");
+        b.HasKey(x => x.AuditoriaEventoDetalleId);
+        b.Property(x => x.AuditoriaEventoDetalleId)
+            .ValueGeneratedOnAdd();
 
-        builder.HasOne<AuditoriaEvento>()
-            .WithMany()
-            .HasForeignKey(x => x.AuditoriaEventoId)
-            .OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(p => p.AuditoriaEvento)
+            .WithOne(d => d.AuditoriaEventoDetalle)
+            .HasForeignKey<AuditoriaEventoDetalle>(p => p.AuditoriaEventoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        b.Property(x => x.Campo)
+            .HasMaxLength(100);
+
+        b.HasIndex(x => x.AuditoriaEventoId)
+            .HasDatabaseName("IX_AuditoriaEventoDetalle_Evento")
+            .IncludeProperties(x => x.Campo);
     }
 }

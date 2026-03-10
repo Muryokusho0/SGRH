@@ -12,16 +12,19 @@ public sealed class AuditoriaEventoDetalle : EntityBase
 {
     public long AuditoriaEventoDetalleId { get; private set; }
     public long AuditoriaEventoId { get; private set; }
-
-    public string Campo { get; private set; } = default!;      // nvarchar 128
-    public string? ValorAnterior { get; private set; }         // nvarchar(max)
-    public string? ValorNuevo { get; private set; }            // nvarchar(max)
+    public string Campo { get; private set; } = default!;
+    public string? ValorAnterior { get; private set; }
+    public string? ValorNuevo { get; private set; }
 
     private AuditoriaEventoDetalle() { }
 
-    public AuditoriaEventoDetalle(long auditoriaEventoId, string campo, string? valorAnterior, string? valorNuevo)
+    internal AuditoriaEventoDetalle(
+        long auditoriaEventoId,
+        string campo,
+        string? valorAnterior,
+        string? valorNuevo)
     {
-        Guard.AgainstOutOfRange(auditoriaEventoId, nameof(auditoriaEventoId), 0);
+        Guard.AgainstOutOfRange(auditoriaEventoId, nameof(auditoriaEventoId), 0L);
         Guard.AgainstNullOrWhiteSpace(campo, nameof(campo), 128);
 
         AuditoriaEventoId = auditoriaEventoId;
@@ -30,7 +33,5 @@ public sealed class AuditoriaEventoDetalle : EntityBase
         ValorNuevo = valorNuevo;
     }
 
-    protected override object GetKey() => AuditoriaEventoDetalleId == 0
-        ? $"{AuditoriaEventoId}-{Campo}"
-        : AuditoriaEventoDetalleId;
+    protected override object GetKey() => AuditoriaEventoDetalleId;
 }

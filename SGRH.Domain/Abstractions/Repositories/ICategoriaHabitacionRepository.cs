@@ -9,5 +9,6 @@ namespace SGRH.Domain.Abstractions.Repositories;
 
 public interface ICategoriaHabitacionRepository : IRepository<CategoriaHabitacion, int>
 {
-    Task<CategoriaHabitacion?> GetByNombreAsync(string nombre, CancellationToken ct = default);
+    // Verifica unicidad de nombre antes de crear/actualizar.
+    Task<bool> ExistsByNombreAsync(string nombre, CancellationToken ct = default);
 }

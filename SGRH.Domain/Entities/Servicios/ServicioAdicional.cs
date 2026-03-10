@@ -1,5 +1,6 @@
 ﻿using SGRH.Domain.Base;
 using SGRH.Domain.Common;
+using SGRH.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -12,21 +13,11 @@ namespace SGRH.Domain.Entities.Servicios;
 public sealed class ServicioAdicional : EntityBase
 {
     public int ServicioAdicionalId { get; private set; }
-    public string NombreServicio { get; private set; }
-    public string TipoServicio { get; private set; }
+    public string NombreServicio { get; private set; } = default!;
+    public string TipoServicio { get; private set; } = default!;
 
-    private readonly List<ServicioCategoriaPrecio> _precios = [];
-    private readonly List<ServicioTemporada> _temporadas = [];
-    public IReadOnlyCollection<ServicioCategoriaPrecio> Precios => _precios;
-    public IReadOnlyCollection<ServicioTemporada> Temporadas => _temporadas;
-
-    public void HabilitarEnTemporada(int temporadaId)
-    {
-        if (_temporadas.Any(t => t.TemporadaId == temporadaId))
-            return;
-
-        _temporadas.Add(new ServicioTemporada(ServicioAdicionalId, temporadaId));
-    }
+    private readonly List<int> _temporadaIds = [];
+    public IReadOnlyCollection<int> TemporadaIds => _temporadaIds;
 
     private ServicioAdicional() { }
 
@@ -39,18 +30,39 @@ public sealed class ServicioAdicional : EntityBase
         TipoServicio = tipoServicio;
     }
 
-    public void AgregarPrecio(int categoriaHabitacionId, decimal precio)
+    public void HabilitarEnTemporada(int temporadaId)
     {
-        if (precio <= 0)
-            throw new ValidationException("Precio debe ser mayor que cero.");
+        Guard.AgainstOutOfRange(temporadaId, nameof(temporadaId), 0);
 
-        if (_precios.Any(p => p.CategoriaHabitacionId == categoriaHabitacionId))
-            throw new ValidationException("Ya existe precio para esa categoría.");
+        if (_temporadaIds.Contains(temporadaId))
+            throw new ConflictException(
+                $"El servicio ya está habilitado para la temporada {temporadaId}.");
 
-        _precios.Add(new ServicioCategoriaPrecio(
-            ServicioAdicionalId,
-            categoriaHabitacionId,
-            precio));
+        _temporadaIds.Add(temporadaId);
+    }
+
+    public void DeshabilitarEnTemporada(int temporadaId)
+    {
+        if (!_temporadaIds.Contains(temporadaId))
+            throw new NotFoundException("ServicioTemporada", temporadaId.ToString());
+
+        _temporadaIds.Remove(temporadaId);
+    }
+
+    public bool EstaDisponibleEn(int? temporadaId)
+    {
+        if (temporadaId is null) return true;
+
+        return _temporadaIds.Contains(temporadaId.Value);
+    }
+
+    public void Actualizar(string nombreServicio, string tipoServicio)
+    {
+        Guard.AgainstNullOrWhiteSpace(nombreServicio, nameof(nombreServicio), 50);
+        Guard.AgainstNullOrWhiteSpace(tipoServicio, nameof(tipoServicio), 50);
+
+        NombreServicio = nombreServicio;
+        TipoServicio = tipoServicio;
     }
 
     protected override object GetKey() => ServicioAdicionalId;

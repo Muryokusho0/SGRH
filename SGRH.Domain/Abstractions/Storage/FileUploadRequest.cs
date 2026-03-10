@@ -1,8 +1,10 @@
-﻿using System;
+﻿using SGRH.Domain.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SGRH.Domain.Exceptions;
 
 namespace SGRH.Domain.Abstractions.Storage;
 
@@ -14,12 +16,15 @@ public sealed class FileUploadRequest
 
     public FileUploadRequest(StoragePath path, string contentType, byte[] content)
     {
-        Path = path;
-        ContentType = string.IsNullOrWhiteSpace(contentType)
-            ? throw new ArgumentException("ContentType es requerido.", nameof(contentType))
-            : contentType;
+        Guard.AgainstNull(path, nameof(path));
+        Guard.AgainstNullOrWhiteSpace(contentType, nameof(contentType), 100);
+        Guard.AgainstNull(content, nameof(content));
 
-        Content = content ?? throw new ArgumentNullException(nameof(content));
-        if (Content.Length == 0) throw new ArgumentException("Content no puede estar vacío.", nameof(content));
+        if (content.Length == 0)
+            throw new ValidationException("El contenido del archivo no puede estar vacío.");
+
+        Path = path;
+        ContentType = contentType;
+        Content = content;
     }
 }

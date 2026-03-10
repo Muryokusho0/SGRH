@@ -9,7 +9,5 @@ namespace SGRH.Domain.Exceptions;
 public sealed class BusinessRuleViolationException : DomainException
 {
     public BusinessRuleViolationException(string message)
-        : base("BUSINESS_RULE_VIOLATION", message)
-    {
-    }
+        : base("BUSINESS_RULE_VIOLATION", message) { }
 }

@@ -1,33 +1,52 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SGRH.Domain.Entities.Habitaciones;
+using SGRH.Domain.Entities.Reservas;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SGRH.Domain.Entities.Reservas;
 
 namespace SGRH.Persistence.Configurations;
 
 public sealed class DetalleReservaConfiguration : IEntityTypeConfiguration<DetalleReserva>
 {
-    public void Configure(EntityTypeBuilder<DetalleReserva> b)
+    public void Configure(EntityTypeBuilder<DetalleReserva> builder)
     {
-        b.ToTable("DetalleReserva");
-        b.HasKey(x => x.DetalleReservaId);
+        builder.ToTable("DetalleReserva");
 
-        b.Property(x => x.TarifaAplicada)   
-            .HasColumnType("decimal(10,2)")
-            .IsRequired();
+        // PK explícita
+        builder.HasKey(x => x.DetalleReservaId);
 
-        b.HasOne<Reserva>()
-            .WithMany()
-            .HasForeignKey(x => x.ReservaId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(x => x.DetalleReservaId)
+               .ValueGeneratedOnAdd();
 
-        b.HasOne<SGRH.Domain.Entities.Habitaciones.Habitacion>()
-            .WithMany()
-            .HasForeignKey(x => x.HabitacionId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(x => x.TarifaAplicada)
+               .HasPrecision(10, 2)
+               .IsRequired();
+
+        builder.HasOne(p => p.Reserva)
+               .WithOne(d => d.DetalleReserva)
+               .HasForeignKey<DetalleReserva>(p => p.ReservaId)
+               .IsRequired()
+               .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(p => p.Habitacion)
+               .WithMany(d => d.DetalleReservas)
+               .HasForeignKey(p => p.HabitacionId)
+               .IsRequired()
+               .OnDelete(DeleteBehavior.Restrict);
+
+        // 1. IX_DetalleReserva_Habitacion (UNIQUE)
+        builder.HasIndex(x => new { x.HabitacionId, x.ReservaId })
+            .HasDatabaseName("IX_DetalleReserva_Habitacion")
+            .IsUnique()
+            .IncludeProperties(x => x.TarifaAplicada);
+
+        // 2. IX_DetalleReserva_Reserva
+        builder.HasIndex(x => x.ReservaId)
+            .HasDatabaseName("IX_DetalleReserva_Reserva")
+            .IncludeProperties(x => new { x.HabitacionId, x.TarifaAplicada });
     }
 }

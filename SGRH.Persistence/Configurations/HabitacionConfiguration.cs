@@ -13,7 +13,7 @@ public sealed class HabitacionConfiguration : IEntityTypeConfiguration<Habitacio
 {
     public void Configure(EntityTypeBuilder<Habitacion> b)
     {
-        b.ToTable("Habitacion", "dbo");
+        b.ToTable("Habitacion");
 
         b.HasKey(x => x.HabitacionId);
 
@@ -29,6 +29,8 @@ public sealed class HabitacionConfiguration : IEntityTypeConfiguration<Habitacio
             .HasColumnName("NumeroHabitacion")
             .IsRequired();
 
+        b.HasIndex(x => x.NumeroHabitacion).IsUnique();
+
         // En SQL es DECIMAL(5,0) UNIQUE. En Domain es int. EF lo mapeará a int.
         b.Property(x => x.NumeroHabitacion)
             .HasColumnType("decimal(5,0)");
@@ -41,11 +43,9 @@ public sealed class HabitacionConfiguration : IEntityTypeConfiguration<Habitacio
             .HasDatabaseName("IX_Habitacion_Categoria")
             .IncludeProperties(x => new { x.NumeroHabitacion, x.Piso });
 
-        b.HasOne<CategoriaHabitacion>()
-            .WithMany()
+        b.HasOne(p => p.CategoriaHabitacion)
+            .WithMany(d => d.Habitaciones)
             .HasForeignKey(x => x.CategoriaHabitacionId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        b.Navigation(x => x.Historial).UsePropertyAccessMode(PropertyAccessMode.Field);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

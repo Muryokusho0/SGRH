@@ -1,8 +1,10 @@
-﻿using System;
+﻿using SGRH.Domain.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SGRH.Domain.Exceptions;
 
 namespace SGRH.Domain.Abstractions.Email;
 
@@ -12,11 +14,9 @@ public sealed class EmailMessage
     public IReadOnlyList<EmailRecipient> To { get; }
     public IReadOnlyList<EmailRecipient> Cc { get; }
     public IReadOnlyList<EmailRecipient> Bcc { get; }
-
     public string Subject { get; }
     public string? TextBody { get; }
     public string? HtmlBody { get; }
-
     public EmailTemplate? Template { get; }
     public IReadOnlyList<EmailAttachment> Attachments { get; }
 
@@ -31,18 +31,26 @@ public sealed class EmailMessage
         IEnumerable<EmailRecipient>? bcc = null,
         IEnumerable<EmailAttachment>? attachments = null)
     {
+        Guard.AgainstNull(from, nameof(from));
+        Guard.AgainstNull(to, nameof(to));
+        Guard.AgainstNullOrWhiteSpace(subject, nameof(subject), 255);
+
+        To = to.ToList();
+        if (To.Count == 0)
+            throw new ValidationException("Debe haber al menos un destinatario.");
+
+        // Un email debe tener al menos cuerpo de texto, HTML, o template.
+        if (textBody is null && htmlBody is null && template is null)
+            throw new ValidationException(
+                "El email debe tener TextBody, HtmlBody o Template.");
+
         From = from;
-        To = (to ?? throw new ArgumentNullException(nameof(to))) is List<EmailRecipient> l1 ? l1 : new List<EmailRecipient>(to);
-        if (To.Count == 0) throw new ArgumentException("Debe existir al menos un destinatario (To).", nameof(to));
-
-        Subject = string.IsNullOrWhiteSpace(subject) ? throw new ArgumentException("Subject es requerido.", nameof(subject)) : subject;
-
+        Subject = subject;
         TextBody = textBody;
         HtmlBody = htmlBody;
         Template = template;
-
-        Cc = cc is null ? Array.Empty<EmailRecipient>() : new List<EmailRecipient>(cc);
-        Bcc = bcc is null ? Array.Empty<EmailRecipient>() : new List<EmailRecipient>(bcc);
-        Attachments = attachments is null ? Array.Empty<EmailAttachment>() : new List<EmailAttachment>(attachments);
+        Cc = cc?.ToList() ?? [];
+        Bcc = bcc?.ToList() ?? [];
+        Attachments = attachments?.ToList() ?? [];
     }
 }

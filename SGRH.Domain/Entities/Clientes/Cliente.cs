@@ -8,10 +8,10 @@ using SGRH.Domain.Common;
 
 namespace SGRH.Domain.Entities.Clientes;
 
-public class Cliente : EntityBase
+public sealed class Cliente : EntityBase
 {
     public int ClienteId { get; private set; }
-    public string NationalID { get; private set; } = default!;
+    public string NationalId { get; private set; } = default!;
     public string NombreCliente { get; private set; } = default!;
     public string ApellidoCliente { get; private set; } = default!;
     public string Email { get; private set; } = default!;
@@ -19,17 +19,39 @@ public class Cliente : EntityBase
 
     private Cliente() { }
 
-    public Cliente(string nationalId, string nombre, string apellido, string email, string telefono)
+    public Cliente(
+        string nationalId,
+        string nombreCliente,
+        string apellidoCliente,
+        string email,
+        string telefono)
     {
         Guard.AgainstNullOrWhiteSpace(nationalId, nameof(nationalId), 20);
-        Guard.AgainstNullOrWhiteSpace(nombre, nameof(nombre), 100);
-        Guard.AgainstNullOrWhiteSpace(apellido, nameof(apellido), 100);
+        Guard.AgainstNullOrWhiteSpace(nombreCliente, nameof(nombreCliente), 100);
+        Guard.AgainstNullOrWhiteSpace(apellidoCliente, nameof(apellidoCliente), 100);
         Guard.AgainstNullOrWhiteSpace(email, nameof(email), 100);
         Guard.AgainstNullOrWhiteSpace(telefono, nameof(telefono), 20);
 
-        NationalID = nationalId;
-        NombreCliente = nombre;
-        ApellidoCliente = apellido;
+        NationalId = nationalId;
+        NombreCliente = nombreCliente;
+        ApellidoCliente = apellidoCliente;
+        Email = email;
+        Telefono = telefono;
+    }
+
+    public void ActualizarDatos(
+        string nombreCliente,
+        string apellidoCliente,
+        string email,
+        string telefono)
+    {
+        Guard.AgainstNullOrWhiteSpace(nombreCliente, nameof(nombreCliente), 100);
+        Guard.AgainstNullOrWhiteSpace(apellidoCliente, nameof(apellidoCliente), 100);
+        Guard.AgainstNullOrWhiteSpace(email, nameof(email), 100);
+        Guard.AgainstNullOrWhiteSpace(telefono, nameof(telefono), 20);
+
+        NombreCliente = nombreCliente;
+        ApellidoCliente = apellidoCliente;
         Email = email;
         Telefono = telefono;
     }

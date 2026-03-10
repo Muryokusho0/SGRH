@@ -6,16 +6,11 @@ using System.Threading.Tasks;
 
 namespace SGRH.Domain.Abstractions.Repositories;
 
-public interface IRepository<TEntity, TKey>
-    where TEntity : class
+public interface IRepository<T, TKey> where T : class
 {
-    Task<TEntity?> GetByIdAsync(TKey id, CancellationToken ct = default);
-
-    Task AddAsync(TEntity entity, CancellationToken ct = default);
-
-    void Update(TEntity entity);
-
-    void Remove(TEntity entity);
-
-    IQueryable<TEntity> Query();
+    Task<T?> GetByIdAsync(TKey id, CancellationToken ct = default);
+    Task<List<T>> GetAllAsync(CancellationToken ct = default);
+    Task AddAsync(T entity, CancellationToken ct = default);
+    void Update(T entity);
+    void Delete(T entity);
 }

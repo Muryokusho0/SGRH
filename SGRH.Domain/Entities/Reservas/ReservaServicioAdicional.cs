@@ -13,20 +13,21 @@ public sealed class ReservaServicioAdicional : EntityBase
     public int ReservaServicioAdicionalId { get; private set; }
     public int ReservaId { get; private set; }
     public int ServicioAdicionalId { get; private set; }
-    public int Cantidad { get; private set; } = 1;
-    public decimal PrecioUnitarioAplicado { get; private set; } // snapshot
-
-    private decimal _subTotalAplicado;
-    public decimal SubTotalAplicado => _subTotalAplicado;
+    public int Cantidad { get; private set; }
+    public decimal PrecioUnitarioAplicado { get; private set; }
+    public decimal SubTotal => Cantidad * PrecioUnitarioAplicado;
 
     private ReservaServicioAdicional() { }
 
-    public ReservaServicioAdicional(int reservaId, int servicioAdicionalId, int cantidad, decimal precioUnitarioAplicado)
+    internal ReservaServicioAdicional(
+        int reservaId,
+        int servicioAdicionalId,
+        int cantidad,
+        decimal precioUnitarioAplicado)
     {
-        Guard.AgainstOutOfRange(reservaId, nameof(reservaId), 0);
         Guard.AgainstOutOfRange(servicioAdicionalId, nameof(servicioAdicionalId), 0);
         Guard.AgainstOutOfRange(cantidad, nameof(cantidad), 0);
-        Guard.AgainstOutOfRange(precioUnitarioAplicado, nameof(precioUnitarioAplicado), 0);
+        Guard.AgainstOutOfRange(precioUnitarioAplicado, nameof(precioUnitarioAplicado), 0m);
 
         ReservaId = reservaId;
         ServicioAdicionalId = servicioAdicionalId;
@@ -40,13 +41,11 @@ public sealed class ReservaServicioAdicional : EntityBase
         Cantidad = nuevaCantidad;
     }
 
-    internal void ActualizarPrecioUnitario(decimal nuevoPrecioUnitario)
+    internal void ActualizarPrecioUnitario(decimal nuevoPrecio)
     {
-        Guard.AgainstOutOfRange(nuevoPrecioUnitario, nameof(nuevoPrecioUnitario), 0);
-        PrecioUnitarioAplicado = nuevoPrecioUnitario;
+        Guard.AgainstOutOfRange(nuevoPrecio, nameof(nuevoPrecio), 0m);
+        PrecioUnitarioAplicado = nuevoPrecio;
     }
 
-    protected override object GetKey() => ReservaServicioAdicionalId == 0
-        ? $"{ReservaId}-{ServicioAdicionalId}"
-        : ReservaServicioAdicionalId;
+    protected override object GetKey() => ReservaServicioAdicionalId;
 }

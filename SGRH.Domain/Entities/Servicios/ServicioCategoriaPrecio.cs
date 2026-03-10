@@ -22,14 +22,20 @@ public sealed class ServicioCategoriaPrecio : EntityBase
         int categoriaHabitacionId,
         decimal precio)
     {
-        if (precio <= 0)
-            throw new ValidationException("Precio inválido.");
+        Guard.AgainstOutOfRange(servicioAdicionalId, nameof(servicioAdicionalId), 0);
+        Guard.AgainstOutOfRange(categoriaHabitacionId, nameof(categoriaHabitacionId), 0);
+        Guard.AgainstOutOfRange(precio, nameof(precio), 0m);
 
         ServicioAdicionalId = servicioAdicionalId;
         CategoriaHabitacionId = categoriaHabitacionId;
         Precio = precio;
     }
 
-    protected override object GetKey()
-        => $"{ServicioAdicionalId}-{CategoriaHabitacionId}";
+    public void ActualizarPrecio(decimal nuevoPrecio)
+    {
+        Guard.AgainstOutOfRange(nuevoPrecio, nameof(nuevoPrecio), 0m);
+        Precio = nuevoPrecio;
+    }
+
+    protected override object GetKey() => $"{ServicioAdicionalId}-{CategoriaHabitacionId}";
 }

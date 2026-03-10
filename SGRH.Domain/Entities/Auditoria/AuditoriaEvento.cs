@@ -6,104 +6,83 @@ using System.Text;
 using System.Threading.Tasks;
 using SGRH.Domain.Base;
 using SGRH.Domain.Common;
+using SGRH.Domain.Exceptions;
 
 namespace SGRH.Domain.Entities.Auditoria;
 
 public sealed class AuditoriaEvento : EntityBase
 {
     public long AuditoriaEventoId { get; private set; }
+    public DateTime FechaUtc { get; private set; }
+    public int UsuarioId { get; private set; }           // NOT NULL en BD
+    public string Rol { get; private set; } = default!;  // snapshot VARCHAR 20
+    public string UsernameSnapshot { get; private set; } = default!; // snapshot NVARCHAR 100
 
-    // En BD es FechaUtc con default SYSUTCDATETIME()
-    public DateTime FechaUtc { get; private set; } = DateTime.UtcNow;
+    // ── Qué hizo ───────────────────────────────────
+    public string Accion { get; private set; } = default!;  // Ej: CREATE, UPDATE, CANCEL. NVARCHAR 50
+    public string Modulo { get; private set; } = default!;  // Ej: Reservas, Tarifas. NVARCHAR 100
+    public string Entidad { get; private set; } = default!; // Ej: Reserva. NVARCHAR 100
+    public string EntidadId { get; private set; } = default!; // PK como texto. NVARCHAR 64
 
-    // Quién ejecutó
-    public int? UsuarioId { get; private set; }
-    public string? Rol { get; private set; }                 // snapshot (varchar 20)
-    public string? UsernameSnapshot { get; private set; }    // snapshot (nvarchar 100)
+    // ── Contexto técnico ───────────────────────────
+    public Guid RequestId { get; private set; }          // correlación por request
+    public string IpOrigen { get; private set; } = default!;  // VARCHAR 45
+    public string UserAgent { get; private set; } = default!; // NVARCHAR 255
 
-    // Qué hizo
-    public string Accion { get; private set; } = default!;   // nvarchar 50
-    public string Modulo { get; private set; } = default!;   // nvarchar 100
-    public string? Entidad { get; private set; }             // nvarchar 100
-    public string? EntidadId { get; private set; }           // nvarchar 64
+    // ── Descripción humana ─────────────────────────
+    public string Descripcion { get; private set; } = default!; // NVARCHAR 500
 
-    // Contexto técnico
-    public Guid? RequestId { get; private set; }
-    public string? IpOrigen { get; private set; }            // varchar 45
-    public string? UserAgent { get; private set; }           // nvarchar 255
-
-    // Descripción humana
-    public string? Descripcion { get; private set; }         // nvarchar 500
-
+    // Colección de cambios campo por campo.
     private readonly List<AuditoriaEventoDetalle> _detalles = [];
     public IReadOnlyCollection<AuditoriaEventoDetalle> Detalles => _detalles;
 
     private AuditoriaEvento() { }
 
     public AuditoriaEvento(
-        int? usuarioId,
-        string? rol,
-        string? usernameSnapshot,
+        int usuarioId,
+        string rol,
+        string usernameSnapshot,
         string accion,
         string modulo,
-        string? entidad = null,
-        string? entidadId = null,
-        Guid? requestId = null,
-        string? ipOrigen = null,
-        string? userAgent = null,
-        string? descripcion = null)
+        string entidad,
+        string entidadId,
+        Guid requestId,
+        string ipOrigen,
+        string userAgent,
+        string descripcion)
     {
+        Guard.AgainstOutOfRange(usuarioId, nameof(usuarioId), 0);
+        Guard.AgainstNullOrWhiteSpace(rol, nameof(rol), 20);
+        Guard.AgainstNullOrWhiteSpace(usernameSnapshot, nameof(usernameSnapshot), 100);
         Guard.AgainstNullOrWhiteSpace(accion, nameof(accion), 50);
         Guard.AgainstNullOrWhiteSpace(modulo, nameof(modulo), 100);
+        Guard.AgainstNullOrWhiteSpace(entidad, nameof(entidad), 100);
+        Guard.AgainstNullOrWhiteSpace(entidadId, nameof(entidadId), 64);
+        Guard.AgainstNullOrWhiteSpace(ipOrigen, nameof(ipOrigen), 45);
+        Guard.AgainstNullOrWhiteSpace(userAgent, nameof(userAgent), 255);
+        Guard.AgainstNullOrWhiteSpace(descripcion, nameof(descripcion), 500);
 
-        if (rol is not null && rol.Length > 20)
-            throw new ValidationException("Rol excede 20 caracteres.");
-
-        if (usernameSnapshot is not null && usernameSnapshot.Length > 100)
-            throw new ValidationException("UsernameSnapshot excede 100 caracteres.");
-
-        if (entidad is not null && entidad.Length > 100)
-            throw new ValidationException("Entidad excede 100 caracteres.");
-
-        if (entidadId is not null && entidadId.Length > 64)
-            throw new ValidationException("EntidadId excede 64 caracteres.");
-
-        if (ipOrigen is not null && ipOrigen.Length > 45)
-            throw new ValidationException("IpOrigen excede 45 caracteres.");
-
-        if (userAgent is not null && userAgent.Length > 255)
-            throw new ValidationException("UserAgent excede 255 caracteres.");
-
-        if (descripcion is not null && descripcion.Length > 500)
-            throw new ValidationException("Descripcion excede 500 caracteres.");
+        if (requestId == Guid.Empty)
+            throw new Exceptions.ValidationException("RequestId no puede ser un Guid vacío.");
 
         UsuarioId = usuarioId;
         Rol = rol;
         UsernameSnapshot = usernameSnapshot;
-
         Accion = accion;
         Modulo = modulo;
         Entidad = entidad;
         EntidadId = entidadId;
-
         RequestId = requestId;
         IpOrigen = ipOrigen;
         UserAgent = userAgent;
-
         Descripcion = descripcion;
-
         FechaUtc = DateTime.UtcNow;
     }
 
     public void AgregarDetalle(string campo, string? valorAnterior, string? valorNuevo)
     {
-        Guard.AgainstNullOrWhiteSpace(campo, nameof(campo), 128);
-
         _detalles.Add(new AuditoriaEventoDetalle(
-            auditoriaEventoId: AuditoriaEventoId,
-            campo: campo,
-            valorAnterior: valorAnterior,
-            valorNuevo: valorNuevo));
+            AuditoriaEventoId, campo, valorAnterior, valorNuevo));
     }
 
     protected override object GetKey() => AuditoriaEventoId;

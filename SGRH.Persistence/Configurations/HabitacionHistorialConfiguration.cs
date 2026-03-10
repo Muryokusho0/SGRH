@@ -17,14 +17,16 @@ public sealed class HabitacionHistorialConfiguration : IEntityTypeConfiguration<
         builder.ToTable("HabitacionHistorial");
         builder.HasKey(x => x.HabitacionHistorialId);
 
-        builder.HasOne<Habitacion>()
-            .WithMany()
+        builder.HasOne(p => p.Habitacion)
+            .WithMany(d => d.HabitacionHistorials)
             .HasForeignKey(x => x.HabitacionId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(x => x.EstadoHabitacion)
-            .HasConversion<string>()
+            .HasColumnName("EstadoHabitacion")
+            .HasConversion(v => v.ToString(), v => Enum.Parse<EstadoHabitacion>(v))
             .HasMaxLength(50)
+            .IsUnicode(false)
             .IsRequired();
     }
 }

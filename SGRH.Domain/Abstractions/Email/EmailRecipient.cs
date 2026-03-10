@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SGRH.Domain.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -15,10 +16,8 @@ public sealed class EmailRecipient
 
     public EmailRecipient(string address, string? name = null)
     {
-        if (string.IsNullOrWhiteSpace(address))
-            throw new ArgumentException("Email Address es requerido.", nameof(address));
-
-        Address = address;
+        Guard.AgainstNullOrWhiteSpace(address, nameof(address), 254);
         Name = name;
+        Address = address;
     }
 }

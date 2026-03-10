@@ -15,12 +15,14 @@ public sealed class Reserva : EntityBase
 {
     public int ReservaId { get; private set; }
     public int ClienteId { get; private set; }
-
-    public EstadoReserva EstadoReserva { get; private set; } = EstadoReserva.Pendiente;
-
-    public DateTime FechaReserva { get; private set; } = DateTime.UtcNow;
+    public EstadoReserva EstadoReserva { get; private set; }
+    public DateTime FechaReserva { get; private set; }
     public DateTime FechaEntrada { get; private set; }
     public DateTime FechaSalida { get; private set; }
+
+    public decimal CostoTotal =>
+        _habitaciones.Sum(h => h.TarifaAplicada) +
+        _servicios.Sum(s => s.SubTotal);
 
     private readonly List<DetalleReserva> _habitaciones = [];
     public IReadOnlyCollection<DetalleReserva> Habitaciones => _habitaciones;
@@ -33,7 +35,8 @@ public sealed class Reserva : EntityBase
     public Reserva(int clienteId, DateTime fechaEntrada, DateTime fechaSalida)
     {
         Guard.AgainstOutOfRange(clienteId, nameof(clienteId), 0);
-        Guard.AgainstInvalidDateRange(fechaEntrada, fechaSalida, nameof(fechaEntrada), nameof(fechaSalida));
+        Guard.AgainstInvalidDateRange(fechaEntrada, fechaSalida,
+                                      nameof(fechaEntrada), nameof(fechaSalida));
 
         ClienteId = clienteId;
         FechaEntrada = fechaEntrada;
@@ -42,69 +45,82 @@ public sealed class Reserva : EntityBase
         FechaReserva = DateTime.UtcNow;
     }
 
-    // ---------------------------
-    // Reglas de estado (inmutabilidad)
-    // ---------------------------
+    // ─────────────────────────────────────────
+    // Guard interno
+    // ─────────────────────────────────────────
+
     private void EnsureEditable()
     {
         if (EstadoReserva == EstadoReserva.Confirmada)
-            throw new BusinessRuleViolationException("Reserva confirmada: no se permiten cambios (snapshot inmutable).");
+            throw new BusinessRuleViolationException(
+                "Una reserva confirmada no puede ser modificada.");
 
         if (EstadoReserva == EstadoReserva.Cancelada)
-            throw new BusinessRuleViolationException("Reserva cancelada: no se permiten cambios.");
+            throw new BusinessRuleViolationException(
+                "Una reserva cancelada no puede ser modificada.");
+
+        if (EstadoReserva == EstadoReserva.Finalizada)
+            throw new BusinessRuleViolationException(
+                "Una reserva finalizada no puede ser modificada.");
     }
 
-    // ---------------------------
+    // ─────────────────────────────────────────
     // Fechas
-    // ---------------------------
-    public void CambiarFechas(DateTime nuevaEntrada, DateTime nuevaSalida, IReservaDomainPolicy policy)
+    // ─────────────────────────────────────────
+
+    public void CambiarFechas(
+        DateTime nuevaEntrada,
+        DateTime nuevaSalida,
+        IReservaDomainPolicy policy)
     {
         Guard.AgainstNull(policy, nameof(policy));
         EnsureEditable();
-        Guard.AgainstInvalidDateRange(nuevaEntrada, nuevaSalida, nameof(nuevaEntrada), nameof(nuevaSalida));
 
-        // Validaciones de disponibilidad por habitación con las nuevas fechas
-        foreach (var dr in _habitaciones)
+        Guard.AgainstInvalidDateRange(nuevaEntrada, nuevaSalida,
+                                      nameof(nuevaEntrada), nameof(nuevaSalida));
+
+        foreach (var detalle in _habitaciones)
         {
-            policy.EnsureHabitacionDisponible(dr.HabitacionId, nuevaEntrada, nuevaSalida, ReservaId == 0 ? null : ReservaId);
-            policy.EnsureHabitacionNoEnMantenimiento(dr.HabitacionId, nuevaEntrada, nuevaSalida);
+            policy.EnsureHabitacionDisponible(
+                detalle.HabitacionId, nuevaEntrada, nuevaSalida,
+                ReservaId == 0 ? null : ReservaId);
+
+            policy.EnsureHabitacionNoEnMantenimiento(
+                detalle.HabitacionId, nuevaEntrada, nuevaSalida);
         }
 
-        // Validar servicios por temporada (si hay temporada)
         var temporadaId = policy.GetTemporadaId(nuevaEntrada);
-        foreach (var s in _servicios)
-            policy.EnsureServicioDisponibleEnTemporada(s.ServicioAdicionalId, temporadaId);
+        foreach (var servicio in _servicios)
+            policy.EnsureServicioDisponibleEnTemporada(
+                servicio.ServicioAdicionalId, temporadaId);
 
-        // Aplicar cambios
         FechaEntrada = nuevaEntrada;
         FechaSalida = nuevaSalida;
 
-        // Repricing automático (solo si sigue pendiente)
         RecalcularSnapshots(policy);
     }
 
-    // ---------------------------
-    // Habitaciones
-    // ---------------------------
     public void AgregarHabitacion(int habitacionId, IReservaDomainPolicy policy)
     {
         Guard.AgainstNull(policy, nameof(policy));
         EnsureEditable();
         Guard.AgainstOutOfRange(habitacionId, nameof(habitacionId), 0);
 
-        if (_habitaciones.Any(x => x.HabitacionId == habitacionId))
-            throw new BusinessRuleViolationException("La habitación ya está agregada a la reserva.");
+        if (_habitaciones.Any(h => h.HabitacionId == habitacionId))
+            throw new ConflictException(
+                "La habitación ya está incluida en esta reserva.");
 
-        policy.EnsureHabitacionDisponible(habitacionId, FechaEntrada, FechaSalida, ReservaId == 0 ? null : ReservaId);
-        policy.EnsureHabitacionNoEnMantenimiento(habitacionId, FechaEntrada, FechaSalida);
+        policy.EnsureHabitacionDisponible(
+            habitacionId, FechaEntrada, FechaSalida,
+            ReservaId == 0 ? null : ReservaId);
+
+        policy.EnsureHabitacionNoEnMantenimiento(
+            habitacionId, FechaEntrada, FechaSalida);
 
         var tarifa = policy.GetTarifaAplicada(habitacionId, FechaEntrada);
-        var detalle = new DetalleReserva(ReservaId, habitacionId, tarifa);
 
-        _habitaciones.Add(detalle);
+        _habitaciones.Add(new DetalleReserva(ReservaId, habitacionId, tarifa));
 
-        // Si ya hay servicios, sus precios dependen de categorías presentes (regla MAX),
-        // así que recalcúlalo para mantener snapshot consistente (en Pendiente).
         if (_servicios.Count > 0)
             RecalcularSnapshots(policy);
     }
@@ -114,109 +130,122 @@ public sealed class Reserva : EntityBase
         Guard.AgainstNull(policy, nameof(policy));
         EnsureEditable();
 
-        var item = _habitaciones.FirstOrDefault(x => x.HabitacionId == habitacionId)
-            ?? throw new BusinessRuleViolationException("La habitación no existe en la reserva.");
-        _habitaciones.Remove(item);
+        var detalle = _habitaciones.FirstOrDefault(h => h.HabitacionId == habitacionId)
+            ?? throw new NotFoundException("DetalleReserva", habitacionId.ToString());
 
-        // Si quitas habitaciones, los servicios pueden cambiar de precio (MAX por categoría)
+        _habitaciones.Remove(detalle);
+
         if (_servicios.Count > 0)
             RecalcularSnapshots(policy);
     }
 
-    // ---------------------------
-    // Servicios
-    // ---------------------------
-    public void AgregarServicio(int servicioAdicionalId, int cantidad, IReservaDomainPolicy policy)
+    public void AgregarServicio(
+        int servicioAdicionalId,
+        int cantidad,
+        IReservaDomainPolicy policy)
     {
         Guard.AgainstNull(policy, nameof(policy));
         EnsureEditable();
-
         Guard.AgainstOutOfRange(servicioAdicionalId, nameof(servicioAdicionalId), 0);
         Guard.AgainstOutOfRange(cantidad, nameof(cantidad), 0);
 
         if (_habitaciones.Count == 0)
-            throw new BusinessRuleViolationException("No se puede agregar un servicio sin habitaciones (se requiere para calcular precio por categoría).");
+            throw new BusinessRuleViolationException(
+                "Debe agregar al menos una habitación antes de agregar servicios.");
 
-        if (_servicios.Any(x => x.ServicioAdicionalId == servicioAdicionalId))
-            throw new BusinessRuleViolationException("El servicio ya existe en la reserva (actualiza la cantidad).");
+        if (_servicios.Any(s => s.ServicioAdicionalId == servicioAdicionalId))
+            throw new ConflictException(
+                "El servicio ya está en la reserva. Modifica la cantidad en su lugar.");
 
         var temporadaId = policy.GetTemporadaId(FechaEntrada);
         policy.EnsureServicioDisponibleEnTemporada(servicioAdicionalId, temporadaId);
 
-        // Precio unitario (regla de tu SQL: MAX precio por categorías presentes)
-        var precioUnitario = policy.GetPrecioServicioAplicado(ReservaId, servicioAdicionalId);
+        var precioUnitario = policy.GetPrecioServicioAplicado(
+            ReservaId, servicioAdicionalId);
 
-        var rsa = new ReservaServicioAdicional(ReservaId, servicioAdicionalId, cantidad, precioUnitario);
-        _servicios.Add(rsa);
+        _servicios.Add(new ReservaServicioAdicional(
+            ReservaId, servicioAdicionalId, cantidad, precioUnitario));
     }
 
     public void CambiarCantidadServicio(int servicioAdicionalId, int nuevaCantidad)
     {
         EnsureEditable();
-        Guard.AgainstOutOfRange(nuevaCantidad, nameof(nuevaCantidad), 0);
 
-        var s = _servicios.FirstOrDefault(x => x.ServicioAdicionalId == servicioAdicionalId)
-            ??throw new BusinessRuleViolationException("El servicio no existe en la reserva.");
+        var servicio = _servicios
+            .FirstOrDefault(s => s.ServicioAdicionalId == servicioAdicionalId)
+            ?? throw new NotFoundException(
+                "ReservaServicioAdicional", servicioAdicionalId.ToString());
 
-        s.CambiarCantidad(nuevaCantidad);
+        servicio.CambiarCantidad(nuevaCantidad);
     }
 
     public void QuitarServicio(int servicioAdicionalId)
     {
         EnsureEditable();
 
-        var s = _servicios.FirstOrDefault(x => x.ServicioAdicionalId == servicioAdicionalId)
-            ??throw new BusinessRuleViolationException("El servicio no existe en la reserva.");
+        var servicio = _servicios
+            .FirstOrDefault(s => s.ServicioAdicionalId == servicioAdicionalId)
+            ?? throw new NotFoundException(
+                "ReservaServicioAdicional", servicioAdicionalId.ToString());
 
-        _servicios.Remove(s);
+        _servicios.Remove(servicio);
     }
 
-    // ---------------------------
-    // Confirmación / cancelación
-    // ---------------------------
     public void Confirmar()
     {
-        if (EstadoReserva == EstadoReserva.Cancelada)
-            throw new BusinessRuleViolationException("No se puede confirmar una reserva cancelada.");
+        if (EstadoReserva != EstadoReserva.Pendiente)
+            throw new BusinessRuleViolationException(
+                $"Solo una reserva Pendiente puede confirmarse. Estado actual: {EstadoReserva}.");
 
         if (_habitaciones.Count == 0)
-            throw new BusinessRuleViolationException("No se puede confirmar una reserva sin habitaciones.");
+            throw new BusinessRuleViolationException(
+                "No se puede confirmar una reserva sin habitaciones.");
 
         EstadoReserva = EstadoReserva.Confirmada;
     }
 
     public void Cancelar()
     {
-        if (EstadoReserva == EstadoReserva.Confirmada)
-        {
-            // SQL permite cancelar confirmadas (no lo bloquea por definición),
-        }
+        if (EstadoReserva == EstadoReserva.Finalizada)
+            throw new BusinessRuleViolationException(
+                "Una reserva finalizada no puede cancelarse.");
+
+        if (EstadoReserva == EstadoReserva.Cancelada)
+            throw new BusinessRuleViolationException(
+                "La reserva ya está cancelada.");
 
         EstadoReserva = EstadoReserva.Cancelada;
     }
 
-    // ---------------------------
-    // Repricing (solo Pendiente)
-    // ---------------------------
+    public void Finalizar()
+    {
+        if (EstadoReserva != EstadoReserva.Confirmada)
+            throw new BusinessRuleViolationException(
+                "Solo una reserva Confirmada puede finalizarse.");
+
+        EstadoReserva = EstadoReserva.Finalizada;
+    }
+
     private void RecalcularSnapshots(IReservaDomainPolicy policy)
     {
-        if (EstadoReserva != EstadoReserva.Pendiente)
-            return;
+        if (EstadoReserva != EstadoReserva.Pendiente) return;
 
-        // Recalcular tarifas habitaciones (por temporada/fecha entrada)
-        foreach (var dr in _habitaciones)
+        foreach (var detalle in _habitaciones)
         {
-            var nueva = policy.GetTarifaAplicada(dr.HabitacionId, FechaEntrada);
-            dr.ActualizarTarifa(nueva);
+            var nuevaTarifa = policy.GetTarifaAplicada(
+                detalle.HabitacionId, FechaEntrada);
+            detalle.ActualizarTarifa(nuevaTarifa);
         }
 
-        // Validar disponibilidad de servicios por temporada y recalcular precio unitario
         var temporadaId = policy.GetTemporadaId(FechaEntrada);
-        foreach (var s in _servicios)
+        foreach (var servicio in _servicios)
         {
-            policy.EnsureServicioDisponibleEnTemporada(s.ServicioAdicionalId, temporadaId);
-            var nuevoPrecio = policy.GetPrecioServicioAplicado(ReservaId, s.ServicioAdicionalId);
-            s.ActualizarPrecioUnitario(nuevoPrecio);
+            policy.EnsureServicioDisponibleEnTemporada(
+                servicio.ServicioAdicionalId, temporadaId);
+
+            var nuevoPrecio = policy.GetPrecioServicioAplicado(
+                ReservaId, servicio.ServicioAdicionalId);
+            servicio.ActualizarPrecioUnitario(nuevoPrecio);
         }
     }
 

@@ -16,6 +16,9 @@ public sealed class ReservaServicioAdicionalConfiguration : IEntityTypeConfigura
     {
         builder.ToTable("ReservaServicioAdicional");
         builder.HasKey(x => x.ReservaServicioAdicionalId);
+        builder.Property(x => x.ReservaServicioAdicionalId)
+            .ValueGeneratedOnAdd()
+            .IsRequired();
 
         builder.Property(x => x.Cantidad).IsRequired();
 
@@ -25,13 +28,13 @@ public sealed class ReservaServicioAdicionalConfiguration : IEntityTypeConfigura
 
         builder.Ignore(x => x.SubTotalAplicado);
 
-        builder.HasOne<Reserva>()
-            .WithMany()
+        builder.HasOne(p => p.Reserva)
+            .WithMany(d => d.ReservaServiciosAdicionales)
             .HasForeignKey(x => x.ReservaId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<ServicioAdicional>()
-            .WithMany()
+        builder.HasOne(p => p.ServicioAdicional)
+            .WithMany(d => d.ReservaServicioAdicionals)
             .HasForeignKey(x => x.ServicioAdicionalId)
             .OnDelete(DeleteBehavior.Restrict);
     }

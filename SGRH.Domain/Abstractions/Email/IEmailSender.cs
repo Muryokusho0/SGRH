@@ -8,5 +8,6 @@ namespace SGRH.Domain.Abstractions.Email;
 
 public interface IEmailSender
 {
-    Task<EmailSendResult> SendAsync(EmailMessage message, CancellationToken ct = default);
+    Task<EmailSendResult> SendAsync(
+        EmailMessage message, CancellationToken ct = default);
 }

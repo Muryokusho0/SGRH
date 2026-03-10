@@ -10,5 +10,6 @@ namespace SGRH.Domain.Abstractions.Repositories;
 
 public interface IServicioAdicionalRepository : IRepository<ServicioAdicional, int>
 {
-    Task<ServicioAdicional?> GetWithPreciosAsync(int servicioId, CancellationToken ct = default);
+    Task<ServicioAdicional?> GetByIdWithTemporadasAsync(
+        int id, CancellationToken ct = default);
 }

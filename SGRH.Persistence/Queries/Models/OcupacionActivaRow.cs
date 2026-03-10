@@ -21,4 +21,5 @@ public sealed class OcupacionActivaRow
 
     public string? EstadoReserva { get; init; }
     public string? ClienteNombre { get; init; }
+
 }

@@ -17,14 +17,17 @@ public sealed class ServicioTemporadaConfiguration : IEntityTypeConfiguration<Se
         builder.ToTable("ServicioTemporada");
         builder.HasKey(x => new { x.ServicioAdicionalId, x.TemporadaId });
 
-        builder.HasOne<ServicioAdicional>()
-            .WithMany()
+        builder.HasOne(p => p.ServicioAdicional)
+            .WithMany(d => d.ServicioTemporadas)
             .HasForeignKey(x => x.ServicioAdicionalId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<Temporada>()
-            .WithMany()
+        builder.HasOne(p => p.Temporada)
+            .WithMany(d => d.ServicioT)
             .HasForeignKey(x => x.TemporadaId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(x => new { x.TemporadaId, x.ServicioAdicionalId })
+            .HasDatabaseName("IX_ServicioTemporada_Temporada");
     }
 }

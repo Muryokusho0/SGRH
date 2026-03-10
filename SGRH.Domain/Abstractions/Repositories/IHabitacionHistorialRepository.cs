@@ -10,5 +10,6 @@ namespace SGRH.Domain.Abstractions.Repositories;
 
 public interface IHabitacionHistorialRepository : IRepository<HabitacionHistorial, int>
 {
-    Task<HabitacionHistorial?> GetVigenteAsync(int habitacionId, CancellationToken ct = default);
+    Task<HabitacionHistorial?> GetVigenteAsync(
+        int habitacionId, CancellationToken ct = default);
 }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SGRH.Domain.Entities.Auditoria;
+using SGRH.Domain.Entities.Seguridad;
 
 namespace SGRH.Persistence.Configurations;
 
@@ -13,21 +14,20 @@ public sealed class AuditoriaEventoConfiguration : IEntityTypeConfiguration<Audi
 {
     public void Configure(EntityTypeBuilder<AuditoriaEvento> b)
     {
-        b.ToTable("AuditoriaEvento", "dbo");
-
+        b.ToTable("AuditoriaEvento");
         b.HasKey(x => x.AuditoriaEventoId);
 
         b.Property(x => x.AuditoriaEventoId)
-            .HasColumnName("AuditoriaEventoId")
             .ValueGeneratedOnAdd();
 
         b.Property(x => x.FechaUtc)
-            .HasColumnName("FechaUtc")
             .HasColumnType("datetime2(3)")
             .IsRequired();
 
-        b.Property(x => x.UsuarioId)
-            .HasColumnName("UsuarioId");
+        b.HasOne(d => d.Usuario)
+            .WithMany(p => p.Auditorias)
+            .HasForeignKey(d => d.UsuarioId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         b.Property(x => x.Rol)
             .HasColumnName("Rol")
@@ -36,30 +36,25 @@ public sealed class AuditoriaEventoConfiguration : IEntityTypeConfiguration<Audi
 
         b.Property(x => x.UsernameSnapshot)
             .HasColumnName("UsernameSnapshot")
-            .HasMaxLength(100)
-            .IsUnicode(true);
+            .HasMaxLength(100);
 
         b.Property(x => x.Accion)
             .HasColumnName("Accion")
             .HasMaxLength(50)
-            .IsUnicode(true)
             .IsRequired();
 
         b.Property(x => x.Modulo)
             .HasColumnName("Modulo")
             .HasMaxLength(100)
-            .IsUnicode(true)
             .IsRequired();
 
         b.Property(x => x.Entidad)
             .HasColumnName("Entidad")
-            .HasMaxLength(100)
-            .IsUnicode(true);
+            .HasMaxLength(100);
 
         b.Property(x => x.EntidadId)
             .HasColumnName("EntidadId")
-            .HasMaxLength(64)
-            .IsUnicode(true);
+            .HasMaxLength(64);
 
         b.Property(x => x.RequestId)
             .HasColumnName("RequestId");
@@ -71,14 +66,47 @@ public sealed class AuditoriaEventoConfiguration : IEntityTypeConfiguration<Audi
 
         b.Property(x => x.UserAgent)
             .HasColumnName("UserAgent")
-            .HasMaxLength(255)
-            .IsUnicode(true);
+            .HasMaxLength(255);
 
         b.Property(x => x.Descripcion)
             .HasColumnName("Descripcion")
-            .HasMaxLength(500)
-            .IsUnicode(true);
+            .HasMaxLength(500);
 
-        b.Navigation(x => x.Detalles).UsePropertyAccessMode(PropertyAccessMode.Field);
+        // 1. IX_AuditoriaEvento_FechaUtc
+        b.HasIndex(x => x.FechaUtc)
+            .HasDatabaseName("IX_AuditoriaEvento_FechaUtc")
+            .IsDescending() // Orden descendente para la fecha
+            .IncludeProperties(x => new {
+                x.UsuarioId,
+                x.Rol,
+                x.Accion,
+                x.Modulo,
+                x.Entidad,
+                x.EntidadId
+            });
+
+        // 2. IX_AuditoriaEvento_Usuario_FechaUtc
+        b.HasIndex(x => new { x.UsuarioId, x.FechaUtc })
+            .HasDatabaseName("IX_AuditoriaEvento_Usuario_FechaUtc")
+            // UsuarioId es Ascendente (false), FechaUtc es Descendente (true)
+            .IsDescending(false, true)
+            .IncludeProperties(x => new {
+                x.Accion,
+                x.Modulo,
+                x.Entidad,
+                x.EntidadId
+            });
+
+        // 3. IX_AuditoriaEvento_Modulo_FechaUtc
+        b.HasIndex(x => new { x.Modulo, x.FechaUtc })
+            .HasDatabaseName("IX_AuditoriaEvento_Modulo_FechaUtc")
+            // Modulo es Ascendente (false), FechaUtc es Descendente (true)
+            .IsDescending(false, true)
+            .IncludeProperties(x => new {
+                x.Accion,
+                x.UsuarioId,
+                x.Entidad,
+                x.EntidadId
+            });
     }
 }

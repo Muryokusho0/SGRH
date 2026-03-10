@@ -8,12 +8,8 @@ namespace SGRH.Domain.Services.Pricing;
 
 public interface IReservaCostCalculator
 {
-    /// <summary>
-    /// Calcula:
-    /// - TotalHabitaciones = SUM(TarifaAplicada)
-    /// - TotalServicios    = SUM(Cantidad * PrecioUnitarioAplicado)
-    /// - TotalReserva      = TotalHabitaciones + TotalServicios
-    /// </summary>
+    // Calcula el desglose de costos de una reserva a partir de sus snapshots.
+    // Recibe solo los valores ya congelados — no consulta nada a BD.
     ReservaCostBreakdown Calculate(
         IReadOnlyList<decimal> tarifasAplicadasHabitaciones,
         IReadOnlyList<(int Cantidad, decimal PrecioUnitarioAplicado)> servicios);

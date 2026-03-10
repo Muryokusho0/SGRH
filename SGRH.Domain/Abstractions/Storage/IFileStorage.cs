@@ -8,11 +8,15 @@ namespace SGRH.Domain.Abstractions.Storage;
 
 public interface IFileStorage
 {
-    Task<FileUploadResult> UploadAsync(FileUploadRequest request, CancellationToken ct = default);
+    Task<FileUploadResult> UploadAsync(
+        FileUploadRequest request, CancellationToken ct = default);
 
-    Task<FileDownloadResult> DownloadAsync(StoragePath path, CancellationToken ct = default);
+    Task<FileDownloadResult> DownloadAsync(
+        StoragePath path, CancellationToken ct = default);
 
-    Task<bool> DeleteAsync(StoragePath path, CancellationToken ct = default);
+    Task<bool> DeleteAsync(
+        StoragePath path, CancellationToken ct = default);
 
-    Task<bool> ExistsAsync(StoragePath path, CancellationToken ct = default);
+    Task<bool> ExistsAsync(
+        StoragePath path, CancellationToken ct = default);
 }

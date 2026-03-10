@@ -65,6 +65,12 @@ public class SGRHDbContext : Microsoft.EntityFrameworkCore.DbContext
         modelBuilder.ApplyConfiguration(new ServicioCategoriaPrecioConfiguration());
         modelBuilder.ApplyConfiguration(new ServicioTemporadaConfiguration());
 
+        modelBuilder.Entity<Cliente>()
+            .HasOne(e => e.Usuario)
+            .WithOne(u => u.Cliente)
+            .HasForeignKey<Usuario>(u => u.ClienteId)
+            .IsRequired();
+
         base.OnModelCreating(modelBuilder);
     }
 
