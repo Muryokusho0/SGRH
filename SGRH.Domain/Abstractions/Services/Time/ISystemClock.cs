@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SGRH.Domain.Services.Time;
+namespace SGRH.Domain.Abstractions.Services.Time;
 
 public interface ISystemClock
 {

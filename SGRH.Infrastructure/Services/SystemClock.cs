@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SGRH.Domain.Services.Time;
+using SGRH.Domain.Abstractions.Services.Time;
 
 namespace SGRH.Infrastructure.Services;
 

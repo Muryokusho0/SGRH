@@ -1,20 +1,22 @@
 ﻿using Amazon;
+using Amazon.Runtime;
 using Amazon.S3;
-using SesV2 = Amazon.SimpleEmailV2;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SGRH.Domain.Abstractions.Email;
 using SGRH.Domain.Abstractions.Policies;
 using SGRH.Domain.Abstractions.Repositories;
+using SGRH.Domain.Abstractions.Services;
+using SGRH.Domain.Abstractions.Services.Time;
 using SGRH.Domain.Abstractions.Storage;
-using SGRH.Domain.Services.Time;
 using SGRH.Infrastructure.EmailSES;
 using SGRH.Infrastructure.Services;
 using SGRH.Infrastructure.StorageS3;
 using SGRH.Persistence.Context;
 using SGRH.Persistence.Repositories;
 using SGRH.Persistence.UnitOfWork;
+using SesV2 = Amazon.SimpleEmailV2;
 
 namespace SGRH.Infrastructure.DependencyInjection;
 
@@ -72,9 +74,15 @@ public static class DependencyInjection
 
         var region = config[$"{S3Options.Section}:Region"]
             ?? throw new InvalidOperationException("AWS:S3:Region no configurado.");
+        var accessKey = config[$"{S3Options.Section}:AccessKey"]
+            ?? throw new InvalidOperationException("AWS:S3:AccessKey no configurado.");
+        var secretKey = config[$"{S3Options.Section}:SecretKey"]
+            ?? throw new InvalidOperationException("AWS:S3:SecretKey no configurado.");
 
         services.AddSingleton<IAmazonS3>(_ =>
-            new AmazonS3Client(RegionEndpoint.GetBySystemName(region)));
+            new AmazonS3Client(
+                new BasicAWSCredentials(accessKey, secretKey),
+                RegionEndpoint.GetBySystemName(region)));
 
         services.AddScoped<IFileStorage, S3FileStorage>();
 
@@ -91,10 +99,14 @@ public static class DependencyInjection
 
         var region = config[$"{SesOptions.Section}:Region"]
             ?? throw new InvalidOperationException("AWS:SES:Region no configurado.");
+        var accessKey = config[$"{SesOptions.Section}:AccessKey"]
+            ?? throw new InvalidOperationException("AWS:SES:AccessKey no configurado.");
+        var secretKey = config[$"{SesOptions.Section}:SecretKey"]
+            ?? throw new InvalidOperationException("AWS:SES:SecretKey no configurado.");
 
-        // Alias explícito para resolver ambigüedad con AWSSDK.SimpleEmail v1
         services.AddSingleton<SesV2.IAmazonSimpleEmailServiceV2>(_ =>
             new SesV2.AmazonSimpleEmailServiceV2Client(
+                new BasicAWSCredentials(accessKey, secretKey),
                 RegionEndpoint.GetBySystemName(region)));
 
         services.AddScoped<IEmailSender, SesEmailSender>();
@@ -110,6 +122,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<ISystemClock, SystemClock>();
         services.AddScoped<IReservaDomainPolicy, ReservaDomainPolicy>();
+        services.AddScoped<IAuditoriaService, AuditoriaService>();
 
         return services;
     }

@@ -14,4 +14,6 @@ public sealed class SesOptions
     public string FromAddress { get; init; } = default!;
     public string FromName { get; init; } = default!;
     public string AdminEmail { get; init; } = default!;
+    public string AccessKey { get; init; } = default!;
+    public string SecretKey { get; init; } = default!;
 }
