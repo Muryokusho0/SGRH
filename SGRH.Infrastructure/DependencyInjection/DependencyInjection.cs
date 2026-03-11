@@ -10,40 +10,47 @@ using SGRH.Persistence.Context;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Persistence.Repositories;
 using SGRH.Persistence.UnitOfWork;
+using SGRH.Domain.Abstractions.Storage;
+using SGRH.Domain.Abstractions.Email;
+using SGRH.Domain.Services.Time;
+// using SGRH.Infrastructure.Email;
+// using SGRH.Infrastructure.Storage;
+// using SGRH.Infrastructure.Time;
 
 namespace SGRH.Infrastructure.DependencyInjection;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration config)
     {
-        // 1) DbContext (Persistence)
-        var cs = config.GetConnectionString("Default");
+        // ── 1. DbContext ─────────────────────────────────────────
         services.AddDbContext<SGRHDbContext>(opt =>
-            opt.UseSqlServer(cs));
+            opt.UseSqlServer(config.GetConnectionString("Default")));
 
-        // 2) UnitOfWork
+        // ── 2. UnitOfWork ────────────────────────────────────────
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-        // 3) Repositorios EF (Persistence)
+        // ── 3. Repositorios EF ───────────────────────────────────
         services.AddScoped<IAuditoriaRepository, AuditoriaRepositoryEF>();
         services.AddScoped<ICategoriaHabitacionRepository, CategoriaHabitacionRepositoryEF>();
         services.AddScoped<IClienteRepository, ClienteRepositoryEF>();
-        services.AddScoped<IDetalleReservaRepository, DetalleReservaRepositoryEF>();
         services.AddScoped<IHabitacionHistorialRepository, HabitacionHistorialRepositoryEF>();
         services.AddScoped<IHabitacionRepository, HabitacionRepositoryEF>();
         services.AddScoped<IReservaRepository, ReservaRepositoryEF>();
-        services.AddScoped<IReservaServicioAdicionalRepository, ReservaServicioAdicionalRepositoryEF>();
-        services.AddScoped<IServicioCategoriaPrecioRepository, ServicioCategoriaPrecioRepositoryEF>();
         services.AddScoped<IServicioAdicionalRepository, ServicioAdicionalRepositoryEF>();
-        services.AddScoped<IServicioTemporadaRepository, ServicioTemporadaRepositoryEF>();
+        services.AddScoped<IServicioCategoriaPrecioRepository, ServicioCategoriaPrecioRepositoryEF>();
         services.AddScoped<ITarifaTemporadaRepository, TarifaTemporadaRepositoryEF>();
         services.AddScoped<ITemporadaRepository, TemporadaRepositoryEF>();
         services.AddScoped<IUsuarioRepository, UsuarioRepositoryEF>();
 
-        // 5) Aquí luego agregas EmailSes / StorageS3
+
+        // Descomentar cuando las implementaciones estén listas:
+        // services.AddScoped<ISystemClock, SystemClock>();
         // services.AddScoped<IEmailSender, SesEmailSender>();
         // services.AddScoped<IFileStorage, S3FileStorage>();
+        // services.AddScoped<IAdminNotifier, AdminNotifier>();
 
         return services;
     }

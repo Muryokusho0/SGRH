@@ -24,19 +24,23 @@ public sealed class AuditoriaEventoConfiguration : IEntityTypeConfiguration<Audi
             .HasColumnType("datetime2(3)")
             .IsRequired();
 
-        b.HasOne(d => d.Usuario)
-            .WithMany(p => p.Auditorias)
+        // Usuario NO expone colección Auditorias → WithMany() sin lambda
+        b.HasOne<Usuario>()
+            .WithMany()
             .HasForeignKey(d => d.UsuarioId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
         b.Property(x => x.Rol)
             .HasColumnName("Rol")
             .HasMaxLength(20)
-            .IsUnicode(false);
+            .IsUnicode(false)
+            .IsRequired();
 
         b.Property(x => x.UsernameSnapshot)
             .HasColumnName("UsernameSnapshot")
-            .HasMaxLength(100);
+            .HasMaxLength(100)
+            .IsRequired();
 
         b.Property(x => x.Accion)
             .HasColumnName("Accion")
@@ -50,63 +54,50 @@ public sealed class AuditoriaEventoConfiguration : IEntityTypeConfiguration<Audi
 
         b.Property(x => x.Entidad)
             .HasColumnName("Entidad")
-            .HasMaxLength(100);
+            .HasMaxLength(100)
+            .IsRequired();
 
         b.Property(x => x.EntidadId)
             .HasColumnName("EntidadId")
-            .HasMaxLength(64);
+            .HasMaxLength(64)
+            .IsRequired();
 
         b.Property(x => x.RequestId)
-            .HasColumnName("RequestId");
+            .HasColumnName("RequestId")
+            .IsRequired();
 
         b.Property(x => x.IpOrigen)
             .HasColumnName("IpOrigen")
             .HasMaxLength(45)
-            .IsUnicode(false);
+            .IsUnicode(false)
+            .IsRequired();
 
         b.Property(x => x.UserAgent)
             .HasColumnName("UserAgent")
-            .HasMaxLength(255);
+            .HasMaxLength(255)
+            .IsRequired();
 
         b.Property(x => x.Descripcion)
             .HasColumnName("Descripcion")
-            .HasMaxLength(500);
+            .HasMaxLength(500)
+            .IsRequired();
 
-        // 1. IX_AuditoriaEvento_FechaUtc
+        b.Navigation(x => x.Detalles)
+            .HasField("_detalles");
+
         b.HasIndex(x => x.FechaUtc)
             .HasDatabaseName("IX_AuditoriaEvento_FechaUtc")
-            .IsDescending() // Orden descendente para la fecha
-            .IncludeProperties(x => new {
-                x.UsuarioId,
-                x.Rol,
-                x.Accion,
-                x.Modulo,
-                x.Entidad,
-                x.EntidadId
-            });
+            .IsDescending()
+            .IncludeProperties(x => new { x.UsuarioId, x.Rol, x.Accion, x.Modulo, x.Entidad, x.EntidadId });
 
-        // 2. IX_AuditoriaEvento_Usuario_FechaUtc
         b.HasIndex(x => new { x.UsuarioId, x.FechaUtc })
             .HasDatabaseName("IX_AuditoriaEvento_Usuario_FechaUtc")
-            // UsuarioId es Ascendente (false), FechaUtc es Descendente (true)
             .IsDescending(false, true)
-            .IncludeProperties(x => new {
-                x.Accion,
-                x.Modulo,
-                x.Entidad,
-                x.EntidadId
-            });
+            .IncludeProperties(x => new { x.Accion, x.Modulo, x.Entidad, x.EntidadId });
 
-        // 3. IX_AuditoriaEvento_Modulo_FechaUtc
         b.HasIndex(x => new { x.Modulo, x.FechaUtc })
             .HasDatabaseName("IX_AuditoriaEvento_Modulo_FechaUtc")
-            // Modulo es Ascendente (false), FechaUtc es Descendente (true)
             .IsDescending(false, true)
-            .IncludeProperties(x => new {
-                x.Accion,
-                x.UsuarioId,
-                x.Entidad,
-                x.EntidadId
-            });
+            .IncludeProperties(x => new { x.Accion, x.UsuarioId, x.Entidad, x.EntidadId });
     }
 }

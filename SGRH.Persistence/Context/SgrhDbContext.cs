@@ -9,6 +9,7 @@ using SGRH.Domain.Entities.Seguridad;
 using SGRH.Domain.Entities.Servicios;
 using SGRH.Domain.Entities.Temporadas;
 using SGRH.Persistence.Configurations;
+using SGRH.Persistence.Context;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,39 +18,37 @@ using System.Threading.Tasks;
 
 namespace SGRH.Persistence.Context;
 
-public class SGRHDbContext : Microsoft.EntityFrameworkCore.DbContext
+public class SGRHDbContext : DbContext
 {
     public SGRHDbContext(DbContextOptions<SGRHDbContext> options)
-          : base(options)
-    {
-    }
+        : base(options) { }
 
-    // CLIENTES
+    // ─── CLIENTES ───────────────────────────────────────────────
     public DbSet<Cliente> Clientes => Set<Cliente>();
 
-    // HABITACIONES
+    // ─── HABITACIONES ────────────────────────────────────────────
     public DbSet<CategoriaHabitacion> CategoriasHabitacion => Set<CategoriaHabitacion>();
     public DbSet<Habitacion> Habitaciones => Set<Habitacion>();
     public DbSet<HabitacionHistorial> HabitacionHistorial => Set<HabitacionHistorial>();
     public DbSet<TarifaTemporada> TarifasTemporada => Set<TarifaTemporada>();
 
-    // RESERVAS
+    // ─── RESERVAS ────────────────────────────────────────────────
     public DbSet<Reserva> Reservas => Set<Reserva>();
     public DbSet<DetalleReserva> DetallesReserva => Set<DetalleReserva>();
     public DbSet<ReservaServicioAdicional> ReservaServiciosAdicionales => Set<ReservaServicioAdicional>();
 
-    // SERVICIOS
+    // ─── SERVICIOS ───────────────────────────────────────────────
     public DbSet<ServicioAdicional> ServiciosAdicionales => Set<ServicioAdicional>();
     public DbSet<ServicioCategoriaPrecio> ServicioCategoriaPrecios => Set<ServicioCategoriaPrecio>();
     public DbSet<ServicioTemporada> ServicioTemporadas => Set<ServicioTemporada>();
 
-    // TEMPORADAS
+    // ─── TEMPORADAS ──────────────────────────────────────────────
     public DbSet<Temporada> Temporadas => Set<Temporada>();
 
-    // SEGURIDAD
+    // ─── SEGURIDAD ───────────────────────────────────────────────
     public DbSet<Usuario> Usuarios => Set<Usuario>();
 
-    // AUDITORIA
+    // ─── AUDITORÍA ───────────────────────────────────────────────
     public DbSet<AuditoriaEvento> AuditoriaEventos => Set<AuditoriaEvento>();
     public DbSet<AuditoriaEventoDetalle> AuditoriaEventoDetalles => Set<AuditoriaEventoDetalle>();
 
@@ -57,22 +56,6 @@ public class SGRHDbContext : Microsoft.EntityFrameworkCore.DbContext
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(SGRHDbContext).Assembly);
 
-        modelBuilder.ApplyConfiguration(new TarifaTemporadaConfiguration());
-        modelBuilder.ApplyConfiguration(new ReservaServicioAdicionalConfiguration());
-        modelBuilder.ApplyConfiguration(new DetalleReservaConfiguration());
-        modelBuilder.ApplyConfiguration(new HabitacionHistorialConfiguration());
-        modelBuilder.ApplyConfiguration(new AuditoriaEventoDetalleConfiguration());
-        modelBuilder.ApplyConfiguration(new ServicioCategoriaPrecioConfiguration());
-        modelBuilder.ApplyConfiguration(new ServicioTemporadaConfiguration());
-
-        modelBuilder.Entity<Cliente>()
-            .HasOne(e => e.Usuario)
-            .WithOne(u => u.Cliente)
-            .HasForeignKey<Usuario>(u => u.ClienteId)
-            .IsRequired();
-
         base.OnModelCreating(modelBuilder);
     }
-
-
 }

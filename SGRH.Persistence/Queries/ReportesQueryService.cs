@@ -16,10 +16,10 @@ public sealed class ReportesQueryService
 
     public ReportesQueryService(SGRHDbContext db) => _db = db;
 
-    /// <summary>
-    /// Reporte: Ocupación (RF-16).
-    /// Devuelve filas de ocupación en un rango de fechas, con filtros opcionales.
-    /// </summary>
+    // ─────────────────────────────────────────────────────────────────────────
+    // RF-16: Ocupación
+    // Habitaciones con reservas solapadas en el rango, con datos de cliente.
+    // ─────────────────────────────────────────────────────────────────────────
     public async Task<List<OcupacionActivaRow>> GetOcupacionActivaAsync(
         ReportesConfiguration cfg,
         EstadoReserva? estado = null,
@@ -28,45 +28,62 @@ public sealed class ReportesQueryService
         var desde = cfg.Desde ?? DateTime.Today;
         var hasta = cfg.Hasta ?? DateTime.Today;
 
-        // Reservas solapadas en el rango
         var reservas = _db.Reservas.AsNoTracking()
             .Where(r => r.FechaEntrada <= hasta && r.FechaSalida >= desde);
 
         if (estado.HasValue)
             reservas = reservas.Where(r => r.EstadoReserva == estado.Value);
 
-        var query =
+        // Query raw — evita problemas de traducción SQL con ToString() y enum
+        var rawQuery =
             from r in reservas
-            join dr in _db.DetallesReserva.AsNoTracking()
-                on r.ReservaId equals dr.ReservaId
-            join h in _db.Habitaciones.AsNoTracking()
-                on dr.HabitacionId equals h.HabitacionId
-            join c in _db.CategoriasHabitacion.AsNoTracking()
-                on h.CategoriaHabitacionId equals c.CategoriaHabitacionId
-            select new OcupacionActivaRow
+            join dr in _db.DetallesReserva.AsNoTracking() on r.ReservaId equals dr.ReservaId
+            join h in _db.Habitaciones.AsNoTracking() on dr.HabitacionId equals h.HabitacionId
+            join c in _db.CategoriasHabitacion.AsNoTracking() on h.CategoriaHabitacionId equals c.CategoriaHabitacionId
+            join cli in _db.Clientes.AsNoTracking() on r.ClienteId equals cli.ClienteId
+            select new
             {
-                ReservaId = r.ReservaId,
-                HabitacionId = h.HabitacionId,
-                CategoriaHabitacionId = c.CategoriaHabitacionId,
-                FechaEntrada = r.FechaEntrada,
-                FechaSalida = r.FechaSalida,
+                r.ReservaId,
+                h.HabitacionId,
+                h.NumeroHabitacion,
+                c.CategoriaHabitacionId,
+                c.NombreCategoria,
+                r.FechaEntrada,
+                r.FechaSalida,
+                r.EstadoReserva,
+                cli.NombreCliente,
+                cli.ApellidoCliente,
             };
 
         if (cfg.CategoriaHabitacionId.HasValue)
-            query = query.Where(x => x.CategoriaHabitacionId == cfg.CategoriaHabitacionId.Value);
+            rawQuery = rawQuery.Where(x => x.CategoriaHabitacionId == cfg.CategoriaHabitacionId.Value);
 
         if (cfg.HabitacionId.HasValue)
-            query = query.Where(x => x.HabitacionId == cfg.HabitacionId.Value);
+            rawQuery = rawQuery.Where(x => x.HabitacionId == cfg.HabitacionId.Value);
 
-        return await query
+        var raw = await rawQuery
             .OrderBy(x => x.FechaEntrada)
             .ThenBy(x => x.HabitacionId)
             .ToListAsync(ct);
+
+        // Proyección en memoria — ToString() y concatenación sin riesgo de traducción
+        return raw.Select(x => new OcupacionActivaRow
+        {
+            ReservaId = x.ReservaId,
+            HabitacionId = x.HabitacionId,
+            HabitacionCodigo = x.NumeroHabitacion.ToString(),
+            CategoriaHabitacionId = x.CategoriaHabitacionId,
+            CategoriaNombre = x.NombreCategoria,
+            FechaEntrada = x.FechaEntrada,
+            FechaSalida = x.FechaSalida,
+            EstadoReserva = x.EstadoReserva.ToString(),
+            ClienteNombre = $"{x.NombreCliente} {x.ApellidoCliente}",
+        }).ToList();
     }
 
-    /// <summary>
-    /// Reporte: Ingresos/Costo total por reserva (RF-16), cumpliendo RF-10 y RF-12.
-    /// </summary>
+    // ─────────────────────────────────────────────────────────────────────────
+    // RF-16: Costo total por reserva (snapshot de precios — RF-10, RF-12)
+    // ─────────────────────────────────────────────────────────────────────────
     public async Task<List<ReservaCostoTotalRow>> GetReservaCostoTotalAsync(
         ReportesConfiguration cfg,
         EstadoReserva? estado = null,
@@ -84,16 +101,31 @@ public sealed class ReportesQueryService
         if (estado.HasValue)
             reservas = reservas.Where(r => r.EstadoReserva == estado.Value);
 
-        var reservaIds = await reservas.Select(r => r.ReservaId).ToListAsync(ct);
+        // Info de reserva + cliente en un solo round-trip
+        var reservaInfo = await (
+            from r in reservas
+            join cli in _db.Clientes.AsNoTracking() on r.ClienteId equals cli.ClienteId
+            select new
+            {
+                r.ReservaId,
+                r.ClienteId,
+                r.FechaEntrada,
+                r.FechaSalida,
+                cli.NombreCliente,
+                cli.ApellidoCliente,
+            }
+        ).ToListAsync(ct);
 
-        // Habitaciones (tarifa snapshot)
+        var reservaIds = reservaInfo.Select(x => x.ReservaId).ToList();
+
+        // Subtotales habitaciones (TarifaAplicada = snapshot)
         var totHab = await _db.DetallesReserva.AsNoTracking()
             .Where(dr => reservaIds.Contains(dr.ReservaId))
             .GroupBy(dr => dr.ReservaId)
             .Select(g => new { ReservaId = g.Key, Total = g.Sum(x => x.TarifaAplicada) })
             .ToListAsync(ct);
 
-        // Servicios (precio snapshot)
+        // Subtotales servicios (PrecioUnitarioAplicado = snapshot)
         var totSrv = await _db.ReservaServiciosAdicionales.AsNoTracking()
             .Where(rs => reservaIds.Contains(rs.ReservaId))
             .GroupBy(rs => rs.ReservaId)
@@ -103,17 +135,21 @@ public sealed class ReportesQueryService
         var mapHab = totHab.ToDictionary(x => x.ReservaId, x => x.Total);
         var mapSrv = totSrv.ToDictionary(x => x.ReservaId, x => x.Total);
 
-        return [.. reservaIds.Select(id => new ReservaCostoTotalRow
+        return [.. reservaInfo.Select(r => new ReservaCostoTotalRow
         {
-            ReservaId = id,
-            TotalHabitaciones = mapHab.TryGetValue(id, out var th) ? th : 0m,
-            TotalServicios = mapSrv.TryGetValue(id, out var ts) ? ts : 0m
+            ReservaId         = r.ReservaId,
+            ClienteId         = r.ClienteId,
+            ClienteNombre     = $"{r.NombreCliente} {r.ApellidoCliente}",
+            FechaEntrada      = r.FechaEntrada,
+            FechaSalida       = r.FechaSalida,
+            TotalHabitaciones = mapHab.TryGetValue(r.ReservaId, out var th) ? th : 0m,
+            TotalServicios    = mapSrv.TryGetValue(r.ReservaId, out var ts) ? ts : 0m,
         })];
     }
 
-    /// <summary>
-    /// Reporte: Uso de servicios (RF-16). Ranking por ingresos.
-    /// </summary>
+    // ─────────────────────────────────────────────────────────────────────────
+    // RF-16: Uso de servicios — ranking por ingresos
+    // ─────────────────────────────────────────────────────────────────────────
     public async Task<List<UsoServiciosRow>> GetUsoServiciosAsync(
         ReportesConfiguration cfg,
         EstadoReserva? estado = null,
@@ -132,17 +168,19 @@ public sealed class ReportesQueryService
             from rs in _db.ReservaServiciosAdicionales.AsNoTracking()
             join r in reservas on rs.ReservaId equals r.ReservaId
             join s in _db.ServiciosAdicionales.AsNoTracking()
-                on rs.ServicioAdicionalId equals s.ServicioAdicionalId
+                                                    on rs.ServicioAdicionalId equals s.ServicioAdicionalId
             select new { rs, s };
 
         if (cfg.ServicioAdicionalId.HasValue)
             query = query.Where(x => x.s.ServicioAdicionalId == cfg.ServicioAdicionalId.Value);
 
+        // Incluir NombreServicio en la clave de grupo para poder proyectarlo
         var rows = await query
-            .GroupBy(x => x.s.ServicioAdicionalId)
+            .GroupBy(x => new { x.s.ServicioAdicionalId, x.s.NombreServicio })
             .Select(g => new UsoServiciosRow
             {
-                ServicioAdicionalId = g.Key,
+                ServicioAdicionalId = g.Key.ServicioAdicionalId,
+                ServicioNombre = g.Key.NombreServicio,
                 CantidadSolicitudes = g.Sum(x => x.rs.Cantidad),
                 IngresoTotal = g.Sum(x => x.rs.Cantidad * x.rs.PrecioUnitarioAplicado),
             })

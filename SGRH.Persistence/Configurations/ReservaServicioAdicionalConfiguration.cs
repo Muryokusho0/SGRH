@@ -10,32 +10,40 @@ using SGRH.Domain.Entities.Servicios;
 
 namespace SGRH.Persistence.Configurations;
 
-public sealed class ReservaServicioAdicionalConfiguration : IEntityTypeConfiguration<ReservaServicioAdicional>
+public sealed class ReservaServicioAdicionalConfiguration
+    : IEntityTypeConfiguration<ReservaServicioAdicional>
 {
-    public void Configure(EntityTypeBuilder<ReservaServicioAdicional> builder)
+    public void Configure(EntityTypeBuilder<ReservaServicioAdicional> b)
     {
-        builder.ToTable("ReservaServicioAdicional");
-        builder.HasKey(x => x.ReservaServicioAdicionalId);
-        builder.Property(x => x.ReservaServicioAdicionalId)
-            .ValueGeneratedOnAdd()
+        b.ToTable("ReservaServicioAdicional");
+        b.HasKey(x => x.ReservaServicioAdicionalId);
+
+        b.Property(x => x.ReservaServicioAdicionalId)
+            .ValueGeneratedOnAdd();
+
+        b.Property(x => x.Cantidad)
             .IsRequired();
 
-        builder.Property(x => x.Cantidad).IsRequired();
-
-        builder.Property(x => x.PrecioUnitarioAplicado)
+        b.Property(x => x.PrecioUnitarioAplicado)
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
-        builder.Ignore(x => x.SubTotalAplicado);
+        // SubTotal es calculado en memoria — no persiste
+        b.Ignore(x => x.SubTotal);
 
-        builder.HasOne(p => p.Reserva)
-            .WithMany(d => d.ReservaServiciosAdicionales)
+        // RSA NO tiene propiedad de navegación Reserva.
+        // La colección inversa _servicios se expone como Servicios en Reserva.
+        b.HasOne<Reserva>()
+            .WithMany(r => r.Servicios)
             .HasForeignKey(x => x.ReservaId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(p => p.ServicioAdicional)
-            .WithMany(d => d.ReservaServicioAdicionals)
+        // RSA NO tiene propiedad de navegación ServicioAdicional.
+        b.HasOne<ServicioAdicional>()
+            .WithMany()
             .HasForeignKey(x => x.ServicioAdicionalId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

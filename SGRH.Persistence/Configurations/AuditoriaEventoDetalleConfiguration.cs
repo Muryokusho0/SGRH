@@ -15,16 +15,31 @@ public sealed class AuditoriaEventoDetalleConfiguration : IEntityTypeConfigurati
     {
         b.ToTable("AuditoriaEventoDetalle");
         b.HasKey(x => x.AuditoriaEventoDetalleId);
+
         b.Property(x => x.AuditoriaEventoDetalleId)
             .ValueGeneratedOnAdd();
 
-        b.HasOne(p => p.AuditoriaEvento)
-            .WithOne(d => d.AuditoriaEventoDetalle)
-            .HasForeignKey<AuditoriaEventoDetalle>(p => p.AuditoriaEventoId)
-            .OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.AuditoriaEventoId)
+            .IsRequired();
 
         b.Property(x => x.Campo)
-            .HasMaxLength(100);
+            .HasColumnName("Campo")
+            .HasMaxLength(128)
+            .IsRequired();
+
+        b.Property(x => x.ValorAnterior)
+            .HasColumnName("ValorAnterior");
+
+        b.Property(x => x.ValorNuevo)
+            .HasColumnName("ValorNuevo");
+
+        // AuditoriaEvento tiene prop pública Detalles (backing field _detalles).
+        // AuditoriaEventoDetalle NO tiene propiedad de navegación de regreso.
+        b.HasOne<AuditoriaEvento>()
+            .WithMany(a => a.Detalles)
+            .HasForeignKey(d => d.AuditoriaEventoId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
 
         b.HasIndex(x => x.AuditoriaEventoId)
             .HasDatabaseName("IX_AuditoriaEventoDetalle_Evento")

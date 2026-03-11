@@ -16,9 +16,8 @@ public sealed class ServicioAdicionalRepositoryEF
 {
     public ServicioAdicionalRepositoryEF(SGRHDbContext db) : base(db) { }
 
-    public Task<ServicioAdicional?> GetWithPreciosAsync(int servicioId, CancellationToken ct = default)
+    public Task<ServicioAdicional?> GetByIdWithTemporadasAsync(
+        int id, CancellationToken ct = default)
         => Db.ServiciosAdicionales
-            .Include(s => s.Precios)
-            .Include(s => s.Temporadas)
-            .FirstOrDefaultAsync(s => s.ServicioAdicionalId == servicioId, ct);
+            .FirstOrDefaultAsync(s => s.ServicioAdicionalId == id, ct);
 }

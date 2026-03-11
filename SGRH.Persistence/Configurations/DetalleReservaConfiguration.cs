@@ -12,40 +12,39 @@ namespace SGRH.Persistence.Configurations;
 
 public sealed class DetalleReservaConfiguration : IEntityTypeConfiguration<DetalleReserva>
 {
-    public void Configure(EntityTypeBuilder<DetalleReserva> builder)
+    public void Configure(EntityTypeBuilder<DetalleReserva> b)
     {
-        builder.ToTable("DetalleReserva");
+        b.ToTable("DetalleReserva");
+        b.HasKey(x => x.DetalleReservaId);
 
-        // PK explícita
-        builder.HasKey(x => x.DetalleReservaId);
+        b.Property(x => x.DetalleReservaId)
+            .ValueGeneratedOnAdd();
 
-        builder.Property(x => x.DetalleReservaId)
-               .ValueGeneratedOnAdd();
+        b.Property(x => x.TarifaAplicada)
+            .HasPrecision(10, 2)
+            .IsRequired();
 
-        builder.Property(x => x.TarifaAplicada)
-               .HasPrecision(10, 2)
-               .IsRequired();
+        // Reserva → Habitaciones (colección _habitaciones).
+        // DetalleReserva NO tiene propiedad de navegación Reserva.
+        b.HasOne<Reserva>()
+            .WithMany(r => r.Habitaciones)
+            .HasForeignKey(d => d.ReservaId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(p => p.Reserva)
-               .WithOne(d => d.DetalleReserva)
-               .HasForeignKey<DetalleReserva>(p => p.ReservaId)
-               .IsRequired()
-               .OnDelete(DeleteBehavior.Restrict);
+        // Habitacion no expone colección de DetalleReserva.
+        b.HasOne<Habitacion>()
+            .WithMany()
+            .HasForeignKey(d => d.HabitacionId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(p => p.Habitacion)
-               .WithMany(d => d.DetalleReservas)
-               .HasForeignKey(p => p.HabitacionId)
-               .IsRequired()
-               .OnDelete(DeleteBehavior.Restrict);
-
-        // 1. IX_DetalleReserva_Habitacion (UNIQUE)
-        builder.HasIndex(x => new { x.HabitacionId, x.ReservaId })
+        b.HasIndex(x => new { x.HabitacionId, x.ReservaId })
             .HasDatabaseName("IX_DetalleReserva_Habitacion")
             .IsUnique()
             .IncludeProperties(x => x.TarifaAplicada);
 
-        // 2. IX_DetalleReserva_Reserva
-        builder.HasIndex(x => x.ReservaId)
+        b.HasIndex(x => x.ReservaId)
             .HasDatabaseName("IX_DetalleReserva_Reserva")
             .IncludeProperties(x => new { x.HabitacionId, x.TarifaAplicada });
     }

@@ -11,13 +11,20 @@ using System.Threading.Tasks;
 
 namespace SGRH.Persistence.Repositories;
 
-public sealed class TemporadaRepositoryEF : Repository<Temporada, int>, ITemporadaRepository
+public sealed class TemporadaRepositoryEF
+    : Repository<Temporada, int>, ITemporadaRepository
 {
     public TemporadaRepositoryEF(SGRHDbContext db) : base(db) { }
 
-    public Task<Temporada?> GetByFechaAsync(DateTime fecha, CancellationToken ct = default)
+    /// <summary>
+    /// Devuelve la temporada vigente para una fecha dada.
+    /// FechaFin es exclusiva: la temporada va de FechaInicio (inclusive) a FechaFin (exclusive).
+    /// </summary>
+    public Task<Temporada?> GetByFechaAsync(
+        DateTime fecha, CancellationToken ct = default)
         => Db.Temporadas
-            .Where(t => fecha >= t.FechaInicio && fecha <= t.FechaFin)
+            .AsNoTracking()
+            .Where(t => fecha >= t.FechaInicio && fecha < t.FechaFin)
             .OrderByDescending(t => t.FechaInicio)
             .FirstOrDefaultAsync(ct);
 }

@@ -16,7 +16,7 @@ public sealed class ClienteRepositoryEF : Repository<Cliente, int>, IClienteRepo
     public ClienteRepositoryEF(SGRHDbContext db) : base(db) { }
 
     public Task<Cliente?> GetByNationalIdAsync(string nationalId, CancellationToken ct = default)
-        => Db.Clientes.FirstOrDefaultAsync(c => c.NationalID == nationalId, ct);
+        => Db.Clientes.FirstOrDefaultAsync(c => c.NationalId == nationalId, ct);
 
     public Task<Cliente?> GetByEmailAsync(string email, CancellationToken ct = default)
         => Db.Clientes.FirstOrDefaultAsync(c => c.Email == email, ct);

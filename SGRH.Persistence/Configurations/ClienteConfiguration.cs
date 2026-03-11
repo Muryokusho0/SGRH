@@ -20,12 +20,12 @@ public sealed class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
         b.Property(x => x.ClienteId)
             .ValueGeneratedOnAdd();
 
-        b.Property(x => x.NationalID)
+        b.Property(x => x.NationalId)
             .HasColumnName("NationalID")
             .HasMaxLength(20)
             .IsUnicode(false);
 
-        b.HasIndex(x => x.NationalID).IsUnique();
+        b.HasIndex(x => x.NationalId).IsUnique();
 
         b.Property(x => x.NombreCliente)
             .HasColumnName("nombreCliente")

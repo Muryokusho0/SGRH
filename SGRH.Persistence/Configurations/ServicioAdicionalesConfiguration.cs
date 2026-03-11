@@ -14,7 +14,6 @@ public sealed class ServicioAdicionalConfiguration : IEntityTypeConfiguration<Se
     public void Configure(EntityTypeBuilder<ServicioAdicional> b)
     {
         b.ToTable("ServicioAdicional");
-
         b.HasKey(x => x.ServicioAdicionalId);
 
         b.Property(x => x.ServicioAdicionalId)
@@ -35,5 +34,7 @@ public sealed class ServicioAdicionalConfiguration : IEntityTypeConfiguration<Se
 
         b.HasIndex(x => new { x.TipoServicio, x.NombreServicio })
             .HasDatabaseName("IX_ServicioAdicional_Tipo_Nombre");
+
+        b.Ignore(x => x.TemporadaIds);
     }
 }

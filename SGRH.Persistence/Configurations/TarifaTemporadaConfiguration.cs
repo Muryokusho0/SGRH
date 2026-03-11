@@ -12,32 +12,43 @@ namespace SGRH.Persistence.Configurations;
 
 public sealed class TarifaTemporadaConfiguration : IEntityTypeConfiguration<TarifaTemporada>
 {
-    public void Configure(EntityTypeBuilder<TarifaTemporada> builder)
+    public void Configure(EntityTypeBuilder<TarifaTemporada> b)
     {
-        builder.ToTable("TarifaTemporada");
-        builder.HasKey(x => x.TarifaTemporadaId);
-        builder.Property(x => x.TarifaTemporadaId)
+        b.ToTable("TarifaTemporada");
+
+        b.HasKey(x => x.TarifaTemporadaId);
+
+        b.Property(x => x.TarifaTemporadaId)
             .ValueGeneratedOnAdd()
             .IsRequired();
 
+        b.Property(x => x.CategoriaHabitacionId)
+            .IsRequired();
 
-        builder.Property(x => x.Precio)
+        b.Property(x => x.TemporadaId)
+            .IsRequired();
+
+        b.Property(x => x.Precio)
             .HasPrecision(10, 2)
             .IsRequired();
 
-        builder.HasOne(p => p.CategoriaHabitacion)
-            .WithMany(d => d.TarifaCategoria)
+        // CategoriaHabitacion NO expone colección TarifaCategoria → WithMany() sin lambda
+        b.HasOne<CategoriaHabitacion>()
+            .WithMany()
             .HasForeignKey(p => p.CategoriaHabitacionId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(p => p.Temporada)
-            .WithMany(d => d.TarifaTemporadas)
+        // Temporada NO expone colección TarifaTemporadas → WithMany() sin lambda
+        b.HasOne<Temporada>()
+            .WithMany()
             .HasForeignKey(x => x.TemporadaId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(x => new { x.TemporadaId, x.CategoriaHabitacionId })
+        b.HasIndex(x => new { x.TemporadaId, x.CategoriaHabitacionId })
             .HasDatabaseName("IX_TarifaTemporada_Categoria")
-            .IsUnique() 
-            .IncludeProperties(x => x.Precio); 
+            .IsUnique()
+            .IncludeProperties(x => x.Precio);
     }
 }

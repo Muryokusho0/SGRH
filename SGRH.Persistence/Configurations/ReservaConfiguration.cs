@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SGRH.Domain.Entities.Clientes;
 using SGRH.Domain.Entities.Reservas;
 using SGRH.Domain.Enums;
 using System;
@@ -26,9 +27,10 @@ public sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
             .HasColumnName("ClienteId")
             .IsRequired();
 
-        b.HasOne(d => d.Cliente)
-            .WithOne(p => p.Reserva)
-            .HasForeignKey<Reserva>(d => d.ClienteId)
+        // Cliente NO expone colección de Reservas → WithMany() sin lambda
+        b.HasOne<Cliente>()
+            .WithMany()
+            .HasForeignKey(x => x.ClienteId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
@@ -54,6 +56,13 @@ public sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
             .HasColumnName("FechaSalida")
             .HasColumnType("datetime")
             .IsRequired();
+
+        // Propiedades calculadas — no mapeadas
+        b.Ignore(x => x.CostoTotal);
+
+        // Backing fields de las colecciones
+        b.Navigation(x => x.Habitaciones).HasField("_habitaciones");
+        b.Navigation(x => x.Servicios).HasField("_servicios");
 
         b.HasIndex(x => new { x.ClienteId, x.FechaReserva })
             .HasDatabaseName("IX_Reserva_Cliente_Fecha")

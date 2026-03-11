@@ -10,30 +10,36 @@ using System.Threading.Tasks;
 
 namespace SGRH.Persistence.Configurations;
 
-public sealed class ServicioCategoriaPrecioConfiguration : IEntityTypeConfiguration<ServicioCategoriaPrecio>
+public sealed class ServicioCategoriaPrecioConfiguration
+    : IEntityTypeConfiguration<ServicioCategoriaPrecio>
 {
-    public void Configure(EntityTypeBuilder<ServicioCategoriaPrecio> builder)
+    public void Configure(EntityTypeBuilder<ServicioCategoriaPrecio> b)
     {
-        builder.ToTable("ServicioCategoriaPrecio");
+        b.ToTable("ServicioCategoriaPrecio");
 
-        builder.HasKey(x => new { x.ServicioAdicionalId, x.CategoriaHabitacionId });
+        // PK compuesta
+        b.HasKey(x => new { x.ServicioAdicionalId, x.CategoriaHabitacionId });
 
-        builder.Property(x => x.Precio)
+        b.Property(x => x.Precio)
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
-        builder.HasOne(p => p.ServicioAdicional)
-            .WithMany(d => d.ServicioCategoriaPrecios)
+        // ServicioCategoriaPrecio NO tiene propiedad de navegación ServicioAdicional
+        b.HasOne<ServicioAdicional>()
+            .WithMany()
             .HasForeignKey(x => x.ServicioAdicionalId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(p => p.CategoriaHabitacion)
-            .WithMany(d => d.CategoriaPrecios)
+        // ServicioCategoriaPrecio NO tiene propiedad de navegación CategoriaHabitacion
+        b.HasOne<CategoriaHabitacion>()
+            .WithMany()
             .HasForeignKey(x => x.CategoriaHabitacionId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(x => new { x.CategoriaHabitacionId, x.ServicioAdicionalId })
+        b.HasIndex(x => new { x.CategoriaHabitacionId, x.ServicioAdicionalId })
             .HasDatabaseName("IX_ServicioCategoriaPrecio_Categoria")
-    .       IncludeProperties(x => new { x.Precio });
+            .IncludeProperties(x => x.Precio);
     }
 }
