@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SGRH.Persistence.Context;
+using SGRH.Infrastructure.DependencyInjection;
 
 namespace SGRH.Api
 {
@@ -9,20 +10,17 @@ namespace SGRH.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // ── Servicios ─────────────────────────────────────────────────
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            builder.Services.AddDbContext<SGRHDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+            // Registra toda la infraestructura: DbContext, repositorios,
+            // S3, SES, UnitOfWork, domain services
+            builder.Services.AddInfrastructure(builder.Configuration);
 
+            // ── Pipeline ──────────────────────────────────────────────────
             var app = builder.Build();
-
-            if (!app.Environment.IsDevelopment())
-            {
-                app.UseHttpsRedirection();
-            }
 
             if (app.Environment.IsDevelopment())
             {
@@ -30,6 +28,7 @@ namespace SGRH.Api
                 app.UseSwaggerUI();
             }
 
+            app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();
 
