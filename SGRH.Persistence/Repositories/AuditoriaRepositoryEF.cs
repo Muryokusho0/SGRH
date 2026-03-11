@@ -16,6 +16,9 @@ public sealed class AuditoriaRepositoryEF
 {
     public AuditoriaRepositoryEF(SGRHDbContext db) : base(db) { }
 
+    public override Task<AuditoriaEvento?> GetByIdAsync(long id, CancellationToken ct = default)
+        => Db.AuditoriaEventos.FirstOrDefaultAsync(a => a.AuditoriaEventoId == id, ct);
+
     public Task<List<AuditoriaEvento>> GetByUsuarioAsync(
         int usuarioId, CancellationToken ct = default)
         => Db.AuditoriaEventos

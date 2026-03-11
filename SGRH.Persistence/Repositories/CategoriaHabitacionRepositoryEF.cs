@@ -16,8 +16,7 @@ public sealed class CategoriaHabitacionRepositoryEF
 {
     public CategoriaHabitacionRepositoryEF(SGRHDbContext db) : base(db) { }
 
-    public Task<bool> ExistsByNombreAsync(
-        string nombre, CancellationToken ct = default)
+    public Task<bool> ExistsByNombreAsync(string nombre, CancellationToken ct = default)
         => Db.CategoriasHabitacion
             .AnyAsync(c => c.NombreCategoria == nombre, ct);
 }
