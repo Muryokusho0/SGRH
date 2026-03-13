@@ -3,11 +3,6 @@ using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Temporadas;
 using SGRH.Persistence.Context;
 using SGRH.Persistence.Repositories.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Persistence.Repositories;
 
@@ -16,10 +11,7 @@ public sealed class TemporadaRepositoryEF
 {
     public TemporadaRepositoryEF(SGRHDbContext db) : base(db) { }
 
-    /// <summary>
-    /// Devuelve la temporada vigente para una fecha dada.
-    /// FechaFin es exclusiva: la temporada va de FechaInicio (inclusive) a FechaFin (exclusive).
-    /// </summary>
+    // FechaFin es exclusiva: [FechaInicio, FechaFin)
     public Task<Temporada?> GetByFechaAsync(
         DateTime fecha, CancellationToken ct = default)
         => Db.Temporadas
@@ -27,4 +19,31 @@ public sealed class TemporadaRepositoryEF
             .Where(t => fecha >= t.FechaInicio && fecha < t.FechaFin)
             .OrderByDescending(t => t.FechaInicio)
             .FirstOrDefaultAsync(ct);
+
+    public Task<bool> ExisteSolapamientoAsync(
+        DateTime fechaInicio, DateTime fechaFin, int? excludeId,
+        CancellationToken ct = default)
+        => Db.Temporadas
+            .AnyAsync(t =>
+                (excludeId == null || t.TemporadaId != excludeId) &&
+                t.FechaInicio < fechaFin &&
+                t.FechaFin > fechaInicio, ct);
+
+    public Task<List<Temporada>> BuscarAsync(
+        string? nombre, DateTime? fechaDesde, DateTime? fechaHasta,
+        CancellationToken ct = default)
+    {
+        var query = Db.Temporadas.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(nombre))
+            query = query.Where(t => t.NombreTemporada.Contains(nombre));
+
+        if (fechaDesde.HasValue)
+            query = query.Where(t => t.FechaFin > fechaDesde.Value);
+
+        if (fechaHasta.HasValue)
+            query = query.Where(t => t.FechaInicio < fechaHasta.Value);
+
+        return query.OrderBy(t => t.FechaInicio).ToListAsync(ct);
+    }
 }

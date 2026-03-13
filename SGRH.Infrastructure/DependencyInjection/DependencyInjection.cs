@@ -14,11 +14,13 @@ using SGRH.Infrastructure.EmailSES;
 using SGRH.Infrastructure.Services;
 using SGRH.Infrastructure.StorageS3;
 using SGRH.Persistence.Context;
+using SGRH.Persistence.Queries;
 using SGRH.Persistence.Repositories;
 using SGRH.Persistence.UnitOfWork;
 using SesV2 = Amazon.SimpleEmailV2;
 
 namespace SGRH.Infrastructure.DependencyInjection;
+
 
 public static class DependencyInjection
 {
@@ -49,6 +51,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        // Repositorios
         services.AddScoped<IAuditoriaRepository, AuditoriaRepositoryEF>();
         services.AddScoped<ICategoriaHabitacionRepository, CategoriaHabitacionRepositoryEF>();
         services.AddScoped<IClienteRepository, ClienteRepositoryEF>();
@@ -60,6 +63,9 @@ public static class DependencyInjection
         services.AddScoped<ITarifaTemporadaRepository, TarifaTemporadaRepositoryEF>();
         services.AddScoped<ITemporadaRepository, TemporadaRepositoryEF>();
         services.AddScoped<IUsuarioRepository, UsuarioRepositoryEF>();
+
+        // Query Services — implementan contratos definidos en Domain
+        services.AddScoped<IReportesQueryService, ReportesQueryService>();
 
         return services;
     }

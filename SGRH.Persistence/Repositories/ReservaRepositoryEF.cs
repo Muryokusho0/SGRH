@@ -1,14 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Reservas;
+using SGRH.Domain.Enums;
 using SGRH.Persistence.Context;
 using SGRH.Persistence.Repositories.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SGRH.Domain.Abstractions.Repositories;
-using SGRH.Domain.Enums;
 
 namespace SGRH.Persistence.Repositories;
 
@@ -47,4 +42,39 @@ public sealed class ReservaRepositoryEF
                && r.FechaSalida > entrada
             select dr.DetalleReservaId)
            .AnyAsync(ct);
+
+    public Task<List<Reserva>> BuscarAsync(
+        int? clienteId,
+        string? estado,
+        DateTime? fechaDesde,
+        DateTime? fechaHasta,
+        DateTime? reservadaDesde,
+        DateTime? reservadaHasta,
+        CancellationToken ct = default)
+    {
+        var query = Db.Reservas.AsNoTracking();
+
+        if (clienteId.HasValue)
+            query = query.Where(r => r.ClienteId == clienteId.Value);
+
+        if (!string.IsNullOrWhiteSpace(estado) &&
+            Enum.TryParse<EstadoReserva>(estado, out var estadoEnum))
+            query = query.Where(r => r.EstadoReserva == estadoEnum);
+
+        if (fechaDesde.HasValue)
+            query = query.Where(r => r.FechaEntrada >= fechaDesde.Value);
+
+        if (fechaHasta.HasValue)
+            query = query.Where(r => r.FechaEntrada <= fechaHasta.Value);
+
+        if (reservadaDesde.HasValue)
+            query = query.Where(r => r.FechaReserva >= reservadaDesde.Value);
+
+        if (reservadaHasta.HasValue)
+            query = query.Where(r => r.FechaReserva <= reservadaHasta.Value);
+
+        return query
+            .OrderByDescending(r => r.FechaReserva)
+            .ToListAsync(ct);
+    }
 }

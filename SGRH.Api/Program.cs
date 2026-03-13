@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using SGRH.Api.Configuration;
+using SGRH.Application.DependencyInjection;
+using SGRH.Auth.DependencyInjection;
 using SGRH.Infrastructure.DependencyInjection;
 using SGRH.Persistence.Context;
-using SGRH.Auth.DependencyInjection;
 
 namespace SGRH.Api;
 public class Program
@@ -50,6 +51,9 @@ public class Program
 
         // Policies por rol
         builder.Services.AddAuthorizationPolicies();
+
+        //Aplication: MediatR, AutoMapper, validadores, servicios de aplicación
+        builder.Services.AddApplication();
 
         // ── Pipeline ──────────────────────────────────────────────────
         var app = builder.Build();

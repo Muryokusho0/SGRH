@@ -1,13 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Seguridad;
+using SGRH.Domain.Enums;
 using SGRH.Persistence.Context;
 using SGRH.Persistence.Repositories.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Persistence.Repositories;
 
@@ -25,4 +21,18 @@ public sealed class UsuarioRepositoryEF
         string username, CancellationToken ct = default)
         => Db.Usuarios
             .AnyAsync(u => u.Username == username, ct);
+
+    public Task<List<Usuario>> BuscarAsync(
+        string? rol, bool? activo, CancellationToken ct = default)
+    {
+        var query = Db.Usuarios.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(rol) && Enum.TryParse<RolUsuario>(rol, out var rolEnum))
+            query = query.Where(u => u.Rol == rolEnum);
+
+        if (activo.HasValue)
+            query = query.Where(u => u.Activo == activo.Value);
+
+        return query.OrderBy(u => u.Username).ToListAsync(ct);
+    }
 }

@@ -10,5 +10,12 @@ namespace SGRH.Domain.Abstractions.Repositories;
 
 public interface ITarifaTemporadaRepository : IRepository<TarifaTemporada, int>
 {
-    Task<TarifaTemporada?> GetTarifaAsync(int categoriaId, int temporadaId, CancellationToken ct = default);
+    Task<bool> ExisteParaCategoriaYTemporadaAsync(
+        int categoriaHabitacionId, int temporadaId, CancellationToken ct = default);
+
+    Task<TarifaTemporada?> GetTarifaAsync(
+        int categoriaId, int temporadaId, CancellationToken ct = default);
+
+    Task<List<TarifaTemporada>> BuscarAsync(
+        int? categoriaId, int? temporadaId, CancellationToken ct = default);
 }

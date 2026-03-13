@@ -10,6 +10,11 @@ namespace SGRH.Domain.Abstractions.Repositories;
 
 public interface IServicioAdicionalRepository : IRepository<ServicioAdicional, int>
 {
+    Task<bool> ExistsByNombreAsync(string nombreServicio, CancellationToken ct = default);
+
     Task<ServicioAdicional?> GetByIdWithTemporadasAsync(
         int id, CancellationToken ct = default);
+
+    Task<List<ServicioAdicional>> BuscarAsync(
+        string? nombre, CancellationToken ct = default);
 }

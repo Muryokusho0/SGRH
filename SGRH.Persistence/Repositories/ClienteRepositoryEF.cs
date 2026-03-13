@@ -3,11 +3,6 @@ using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Clientes;
 using SGRH.Persistence.Context;
 using SGRH.Persistence.Repositories.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Persistence.Repositories;
 
@@ -20,4 +15,29 @@ public sealed class ClienteRepositoryEF : Repository<Cliente, int>, IClienteRepo
 
     public Task<Cliente?> GetByEmailAsync(string email, CancellationToken ct = default)
         => Db.Clientes.FirstOrDefaultAsync(c => c.Email == email, ct);
+
+    public Task<List<Cliente>> BuscarAsync(
+        string? nombre,
+        string? email,
+        string? nationalId,
+        CancellationToken ct = default)
+    {
+        var query = Db.Clientes.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(nombre))
+            query = query.Where(c =>
+                c.NombreCliente.Contains(nombre) ||
+                c.ApellidoCliente.Contains(nombre));
+
+        if (!string.IsNullOrWhiteSpace(email))
+            query = query.Where(c => c.Email.Contains(email));
+
+        if (!string.IsNullOrWhiteSpace(nationalId))
+            query = query.Where(c => c.NationalId == nationalId);
+
+        return query
+            .OrderBy(c => c.ApellidoCliente)
+            .ThenBy(c => c.NombreCliente)
+            .ToListAsync(ct);
+    }
 }

@@ -13,11 +13,15 @@ public static class AuthorizationConfig
             opt.AddPolicy("SoloAdmin", p =>
                 p.RequireRole("ADMIN"));
 
+            // Solo clientes registrados
+            opt.AddPolicy("SoloCliente", p =>
+                p.RequireRole("CLIENTE"));
+
             // Administrador o Recepcionista (gestión operativa)
             opt.AddPolicy("AdminORecepcionista", p =>
                 p.RequireRole("ADMIN", "RECEPCIONISTA"));
 
-            // Cualquier usuario autenticado
+            // Administrador, Recepcionista o Cliente autenticado
             opt.AddPolicy("Autenticado", p =>
                 p.RequireAuthenticatedUser());
         });

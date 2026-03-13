@@ -1,13 +1,8 @@
-﻿using SGRH.Domain.Abstractions.Repositories;
+﻿using Microsoft.EntityFrameworkCore;
+using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Auditoria;
 using SGRH.Persistence.Context;
 using SGRH.Persistence.Repositories.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
 namespace SGRH.Persistence.Repositories;
 
@@ -42,4 +37,36 @@ public sealed class AuditoriaRepositoryEF
             .Where(a => a.FechaUtc >= desde && a.FechaUtc <= hasta)
             .OrderByDescending(a => a.FechaUtc)
             .ToListAsync(ct);
+
+    public Task<List<AuditoriaEvento>> BuscarAsync(
+        string? modulo,
+        string? accion,
+        string? entidad,
+        int? usuarioId,
+        DateTime? fechaDesde,
+        DateTime? fechaHasta,
+        CancellationToken ct = default)
+    {
+        var query = Db.AuditoriaEventos.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(modulo))
+            query = query.Where(a => a.Modulo == modulo);
+
+        if (!string.IsNullOrWhiteSpace(accion))
+            query = query.Where(a => a.Accion == accion);
+
+        if (!string.IsNullOrWhiteSpace(entidad))
+            query = query.Where(a => a.Entidad == entidad);
+
+        if (usuarioId.HasValue)
+            query = query.Where(a => a.UsuarioId == usuarioId.Value);
+
+        if (fechaDesde.HasValue)
+            query = query.Where(a => a.FechaUtc >= fechaDesde.Value);
+
+        if (fechaHasta.HasValue)
+            query = query.Where(a => a.FechaUtc <= fechaHasta.Value);
+
+        return query.OrderByDescending(a => a.FechaUtc).ToListAsync(ct);
+    }
 }

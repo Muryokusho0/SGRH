@@ -1,14 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Habitaciones;
+using SGRH.Domain.Enums;
 using SGRH.Persistence.Context;
 using SGRH.Persistence.Repositories.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SGRH.Domain.Enums;
 
 namespace SGRH.Persistence.Repositories;
 
@@ -28,16 +23,23 @@ public sealed class HabitacionRepositoryEF
         => Db.Habitaciones
             .AnyAsync(h => h.NumeroHabitacion == numero, ct);
 
+    // Sin filtro de categoría — lo usa ReservaDomainPolicy.
     public Task<List<Habitacion>> GetDisponiblesAsync(
         DateTime entrada, DateTime salida, CancellationToken ct = default)
+        => GetDisponiblesAsync(entrada, salida, null, ct);
+
+    // Con filtro de categoría — lo usa ListarHabitacionesDisponiblesUseCase.
+    public Task<List<Habitacion>> GetDisponiblesAsync(
+        DateTime entrada, DateTime salida, int? categoriaHabitacionId,
+        CancellationToken ct = default)
     {
-        // IDs de habitaciones en mantenimiento activo (sin FechaFin)
+        // Habitaciones en mantenimiento activo (sin FechaFin).
         var enMantenimiento = Db.HabitacionHistorial
             .Where(hh => hh.FechaFin == null &&
                          hh.EstadoHabitacion == EstadoHabitacion.Mantenimiento)
             .Select(hh => hh.HabitacionId);
 
-        // IDs de habitaciones con reserva activa solapada en el rango
+        // Habitaciones con reserva activa solapada en el rango.
         var conReserva =
             from dr in Db.DetallesReserva
             join r in Db.Reservas on dr.ReservaId equals r.ReservaId
@@ -46,10 +48,43 @@ public sealed class HabitacionRepositoryEF
                && r.FechaSalida > entrada
             select dr.HabitacionId;
 
-        return Db.Habitaciones
+        var query = Db.Habitaciones
             .AsNoTracking()
             .Where(h => !enMantenimiento.Contains(h.HabitacionId)
-                     && !conReserva.Contains(h.HabitacionId))
+                     && !conReserva.Contains(h.HabitacionId));
+
+        if (categoriaHabitacionId.HasValue)
+            query = query.Where(h => h.CategoriaHabitacionId == categoriaHabitacionId.Value);
+
+        return query
+            .OrderBy(h => h.Piso)
+            .ThenBy(h => h.NumeroHabitacion)
+            .ToListAsync(ct);
+    }
+
+    public Task<List<Habitacion>> BuscarAsync(
+        string? estado, int? categoriaId, int? piso,
+        CancellationToken ct = default)
+    {
+        var query = Db.Habitaciones.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(estado) &&
+            Enum.TryParse<EstadoHabitacion>(estado, out var estadoEnum))
+        {
+            var ids = Db.HabitacionHistorial
+                .Where(hh => hh.FechaFin == null && hh.EstadoHabitacion == estadoEnum)
+                .Select(hh => hh.HabitacionId);
+
+            query = query.Where(h => ids.Contains(h.HabitacionId));
+        }
+
+        if (categoriaId.HasValue)
+            query = query.Where(h => h.CategoriaHabitacionId == categoriaId.Value);
+
+        if (piso.HasValue)
+            query = query.Where(h => h.Piso == piso.Value);
+
+        return query
             .OrderBy(h => h.Piso)
             .ThenBy(h => h.NumeroHabitacion)
             .ToListAsync(ct);
