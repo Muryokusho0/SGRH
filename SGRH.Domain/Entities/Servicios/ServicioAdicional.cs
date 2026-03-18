@@ -1,12 +1,6 @@
 ﻿using SGRH.Domain.Base;
 using SGRH.Domain.Common;
 using SGRH.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Domain.Entities.Servicios;
 
@@ -15,6 +9,10 @@ public sealed class ServicioAdicional : EntityBase
     public int ServicioAdicionalId { get; private set; }
     public string NombreServicio { get; private set; } = default!;
     public string TipoServicio { get; private set; } = default!;
+
+    // Si true, el servicio está disponible en TODAS las temporadas
+    // sin necesidad de estar explícitamente asignado a cada una.
+    public bool AplicaTodasTemporadas { get; private set; }
 
     private readonly List<int> _temporadaIds = [];
     public IReadOnlyCollection<int> TemporadaIds => _temporadaIds;
@@ -28,6 +26,7 @@ public sealed class ServicioAdicional : EntityBase
 
         NombreServicio = nombreServicio;
         TipoServicio = tipoServicio;
+        AplicaTodasTemporadas = false;
     }
 
     public void HabilitarEnTemporada(int temporadaId)
@@ -49,8 +48,21 @@ public sealed class ServicioAdicional : EntityBase
         _temporadaIds.Remove(temporadaId);
     }
 
+    // Marca el servicio como disponible en todas las temporadas.
+    // Ya no es necesario asignarlo temporada por temporada.
+    public void HabilitarParaTodasTemporadas()
+        => AplicaTodasTemporadas = true;
+
+    // Revierte a modo por temporada — deberás asignarlo manualmente a cada una.
+    public void DeshabilitarParaTodasTemporadas()
+        => AplicaTodasTemporadas = false;
+
     public bool EstaDisponibleEn(int? temporadaId)
     {
+        // Si aplica a todas, siempre está disponible sin importar la temporada
+        if (AplicaTodasTemporadas) return true;
+
+        // Sin temporada activa → disponible
         if (temporadaId is null) return true;
 
         return _temporadaIds.Contains(temporadaId.Value);

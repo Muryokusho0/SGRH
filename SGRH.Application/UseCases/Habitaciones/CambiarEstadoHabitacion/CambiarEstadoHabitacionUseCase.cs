@@ -5,11 +5,6 @@ using SGRH.Domain.Abstractions.Services;
 using SGRH.Domain.Entities.Auditoria;
 using SGRH.Domain.Enums;
 using SGRH.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Application.UseCases.Habitaciones.CambiarEstadoHabitacion;
 
@@ -39,42 +34,61 @@ public sealed class CambiarEstadoHabitacionUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
-        // ── 1. Validar ────────────────────────────────────────────────────
+        // ── 1. Validar — fuera de transacción ─────────────────────────────
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
             throw new ApplicationValidationException(validation.Errors);
 
-        // ── 2. Buscar ─────────────────────────────────────────────────────
-        var habitacion = await _habitaciones.GetByIdAsync(request.HabitacionId, ct)
+        // ── 2. Buscar CON historial — fuera de transacción ────────────────
+        var habitacion = await _habitaciones.GetByIdWithHistorialAsync(request.HabitacionId, ct)
             ?? throw new NotFoundException("Habitacion", request.HabitacionId.ToString());
 
-        // ── 3. Parsear estado — el Validator garantiza que es válido ──────
-        var nuevoEstado = Enum.Parse<EstadoHabitacion>(
-            request.NuevoEstado, ignoreCase: true);
+        // ── 3. Snapshot del estado anterior para auditoría ────────────────
+        var estadoAnterior = habitacion.EstadoActual?.EstadoHabitacion.ToString() ?? "Desconocido";
+        var motivoAnterior = habitacion.EstadoActual?.MotivoCambio;
 
-        // ── 4. Cambiar estado — la entidad lanza si ya está en ese estado ─
+        // ── 4. Cambiar estado ─────────────────────────────────────────────
+        var nuevoEstado = Enum.Parse<EstadoHabitacion>(request.NuevoEstado, ignoreCase: true);
         habitacion.CambiarEstado(nuevoEstado, request.Motivo);
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        // ── 5. Transacción ────────────────────────────────────────────────
+        await _unitOfWork.BeginTransactionAsync(ct);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(ct);
 
-        // ── 5. Auditoría ──────────────────────────────────────────────────
-        var descripcion = string.IsNullOrWhiteSpace(request.Motivo)
-            ? $"Habitación {habitacion.NumeroHabitacion} cambió a estado {nuevoEstado}."
-            : $"Habitación {habitacion.NumeroHabitacion} cambió a estado {nuevoEstado}. Motivo: {request.Motivo}.";
+            var descripcion = string.IsNullOrWhiteSpace(request.Motivo)
+                ? $"Habitación {habitacion.NumeroHabitacion} cambió a {nuevoEstado}."
+                : $"Habitación {habitacion.NumeroHabitacion} cambió a {nuevoEstado}. Motivo: {request.Motivo}.";
 
-        var evento = new AuditoriaEvento(
-            usuarioId: usuarioActualId,
-            rol: usuarioActualRol,
-            usernameSnapshot: usernameActual,
-            accion: "STATE_CHANGE",
-            modulo: "Habitaciones",
-            entidad: "Habitacion",
-            entidadId: habitacion.HabitacionId.ToString(),
-            requestId: request.AuditInfo.RequestId,
-            ipOrigen: request.AuditInfo.IpOrigen,
-            userAgent: request.AuditInfo.UserAgent,
-            descripcion: descripcion);
+            var evento = new AuditoriaEvento(
+                usuarioId: usuarioActualId,
+                rol: usuarioActualRol,
+                usernameSnapshot: usernameActual,
+                accion: "STATE_CHANGE",
+                modulo: "Habitaciones",
+                entidad: "Habitacion",
+                entidadId: habitacion.HabitacionId.ToString(),
+                requestId: request.AuditInfo.RequestId,
+                ipOrigen: request.AuditInfo.IpOrigen,
+                userAgent: request.AuditInfo.UserAgent,
+                descripcion: descripcion);
 
-        await _auditoria.RegistrarAsync(evento, ct);
+            // Siempre hay cambio de estado — registrar el campo
+            evento.AgregarDetalle("EstadoHabitacion", estadoAnterior, nuevoEstado.ToString());
+
+            // Registrar motivo solo si cambió (puede pasar de con motivo a sin motivo)
+            if (!string.Equals(motivoAnterior, request.Motivo, StringComparison.OrdinalIgnoreCase))
+                evento.AgregarDetalle("MotivoCambio", motivoAnterior, request.Motivo);
+
+            await _auditoria.RegistrarAsync(evento, ct);
+
+            await _unitOfWork.CommitAsync(ct);
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync(ct);
+            throw;
+        }
     }
 }

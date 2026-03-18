@@ -3,11 +3,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SGRH.Domain.Entities.Clientes;
 using SGRH.Domain.Entities.Reservas;
 using SGRH.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Persistence.Configurations;
 
@@ -15,7 +10,15 @@ public sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
 {
     public void Configure(EntityTypeBuilder<Reserva> b)
     {
-        b.ToTable("Reserva");
+        b.ToTable("Reserva", t =>
+        {
+            // EF Core usa OUTPUT para leer IDs generados, pero SQL Server no permite
+            // OUTPUT en tablas con triggers. HasTrigger cambia la estrategia a
+            // SELECT SCOPE_IDENTITY() que sí es compatible con triggers.
+            t.HasTrigger("TR_Reserva_Confirmar_RequiereHabitaciones");
+            t.HasTrigger("TR_Reserva_CambioFechas_RevalidarHabitaciones");
+            t.HasTrigger("TR_Reserva_Confirmada_BloquearCambioFechas");
+        });
 
         b.HasKey(x => x.ReservaId);
 
@@ -27,14 +30,12 @@ public sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
             .HasColumnName("ClienteId")
             .IsRequired();
 
-        // Cliente NO expone colección de Reservas → WithMany() sin lambda
         b.HasOne<Cliente>()
             .WithMany()
             .HasForeignKey(x => x.ClienteId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
-        // SQL: EstadoReserva VARCHAR(50) CHECK(...)
         b.Property(x => x.EstadoReserva)
             .HasColumnName("EstadoReserva")
             .HasConversion(v => v.ToString(), v => Enum.Parse<EstadoReserva>(v))
@@ -57,10 +58,8 @@ public sealed class ReservaConfiguration : IEntityTypeConfiguration<Reserva>
             .HasColumnType("datetime")
             .IsRequired();
 
-        // Propiedades calculadas — no mapeadas
         b.Ignore(x => x.CostoTotal);
 
-        // Backing fields de las colecciones
         b.Navigation(x => x.Habitaciones).HasField("_habitaciones");
         b.Navigation(x => x.Servicios).HasField("_servicios");
 

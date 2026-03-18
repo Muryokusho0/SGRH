@@ -1,16 +1,11 @@
-﻿using SGRH.Application.Common.Exceptions;
+﻿using SGRH.Application.Abstractions;
+using SGRH.Application.Common.Exceptions;
+using SGRH.Application.Mappers;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Abstractions.Services;
 using SGRH.Domain.Entities.Auditoria;
 using SGRH.Domain.Entities.Habitaciones;
 using SGRH.Domain.Exceptions;
-using SGRH.Application.Abstractions;
-using SGRH.Application.Mappers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Application.UseCases.Categorias.CrearCategoria;
 
@@ -40,42 +35,49 @@ public sealed class CrearCategoriaUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
-        // ── 1. Validar ────────────────────────────────────────────────────
+        // ── 1. Validar — fuera de transacción, sin escrituras ─────────────
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
             throw new ApplicationValidationException(validation.Errors);
 
-        // ── 2. Unicidad de nombre ─────────────────────────────────────────
+        // ── 2. Unicidad — lectura, fuera de transacción ───────────────────
         if (await _categorias.ExistsByNombreAsync(request.NombreCategoria, ct))
             throw new ConflictException(
                 $"Ya existe una categoría con el nombre '{request.NombreCategoria}'.");
 
-        // ── 3. Crear ──────────────────────────────────────────────────────
-        var categoria = new CategoriaHabitacion(
-            request.NombreCategoria,
-            request.Capacidad,
-            request.Descripcion,
-            request.PrecioBase);
+        // ── 3. Transacción: escritura + auditoría atómicas ────────────────
+        await _unitOfWork.BeginTransactionAsync(ct);
+        try
+        {
+            var categoria = new CategoriaHabitacion(
+                request.NombreCategoria,
+                request.Capacidad,
+                request.Descripcion,
+                request.PrecioBase);
 
-        await _categorias.AddAsync(categoria, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+            await _categorias.AddAsync(categoria, ct);
+            await _unitOfWork.SaveChangesAsync(ct); // flush para obtener el ID generado
 
-        // ── 4. Auditoría ──────────────────────────────────────────────────
-        var evento = new AuditoriaEvento(
-            usuarioId: usuarioActualId,
-            rol: usuarioActualRol,
-            usernameSnapshot: usernameActual,
-            accion: "CREATE",
-            modulo: "Categorias",
-            entidad: "CategoriaHabitacion",
-            entidadId: categoria.CategoriaHabitacionId.ToString(),
-            requestId: request.AuditInfo.RequestId,
-            ipOrigen: request.AuditInfo.IpOrigen,
-            userAgent: request.AuditInfo.UserAgent,
-            descripcion: $"Categoría '{request.NombreCategoria}' creada.");
+            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+                usuarioId: usuarioActualId,
+                rol: usuarioActualRol,
+                usernameSnapshot: usernameActual,
+                accion: "CREATE",
+                modulo: "Categorias",
+                entidad: "CategoriaHabitacion",
+                entidadId: categoria.CategoriaHabitacionId.ToString(),
+                requestId: request.AuditInfo.RequestId,
+                ipOrigen: request.AuditInfo.IpOrigen,
+                userAgent: request.AuditInfo.UserAgent,
+                descripcion: $"Categoría '{request.NombreCategoria}' creada."), ct);
 
-        await _auditoria.RegistrarAsync(evento, ct);
-
-        return new CrearCategoriaResponse(categoria.ToDto());
+            await _unitOfWork.CommitAsync(ct);
+            return new CrearCategoriaResponse(categoria.ToDto());
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync(ct);
+            throw;
+        }
     }
 }

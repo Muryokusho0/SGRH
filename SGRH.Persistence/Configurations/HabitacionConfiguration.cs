@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SGRH.Domain.Entities.Habitaciones;
 
@@ -29,8 +24,11 @@ public sealed class HabitacionConfiguration : IEntityTypeConfiguration<Habitacio
             .HasColumnType("decimal(5,0)")
             .IsRequired();
 
+        // Solo NumeroHabitacion es único — cada habitación tiene un número distinto.
+        // Piso NO es único — múltiples habitaciones pueden estar en el mismo piso.
         b.HasIndex(x => x.NumeroHabitacion)
-            .IsUnique();
+            .IsUnique()
+            .HasDatabaseName("IX_Habitacion_NumeroHabitacion");
 
         b.Property(x => x.Piso)
             .HasColumnName("Piso")
@@ -39,7 +37,6 @@ public sealed class HabitacionConfiguration : IEntityTypeConfiguration<Habitacio
         // EstadoActual es calculado en memoria — no persiste
         b.Ignore(x => x.EstadoActual);
 
-        // Habitacion NO tiene propiedad de navegación CategoriaHabitacion
         b.HasOne<CategoriaHabitacion>()
             .WithMany()
             .HasForeignKey(h => h.CategoriaHabitacionId)

@@ -1,21 +1,24 @@
 ﻿using SGRH.Application.Abstractions;
 using SGRH.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Application.UseCases.Habitaciones.CambiarEstadoHabitacion;
 
-public sealed class CambiarEstadoHabitacionValidator : IValidator<CambiarEstadoHabitacionRequest>
+public sealed class CambiarEstadoHabitacionValidator
+    : IValidator<CambiarEstadoHabitacionRequest>
 {
     private static readonly HashSet<string> EstadosValidos =
         new(StringComparer.OrdinalIgnoreCase)
         {
             nameof(EstadoHabitacion.Disponible),
-            nameof(EstadoHabitacion.Mantenimiento),
             nameof(EstadoHabitacion.Ocupada),
+            nameof(EstadoHabitacion.Mantenimiento),
+            nameof(EstadoHabitacion.Limpieza)
+        };
+
+    private static readonly HashSet<string> EstadosConMotivoRequerido =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            nameof(EstadoHabitacion.Mantenimiento),
             nameof(EstadoHabitacion.Limpieza)
         };
 
@@ -31,15 +34,17 @@ public sealed class CambiarEstadoHabitacionValidator : IValidator<CambiarEstadoH
             errors.Add("El nuevo estado es requerido.");
         else if (!EstadosValidos.Contains(request.NuevoEstado))
             errors.Add($"El estado '{request.NuevoEstado}' no es válido. " +
-                       "Use: Disponible, EnMantenimiento o FueraDeServicio.");
+                       "Use: Disponible, Ocupada, Mantenimiento o Limpieza.");
+        else
+        {
+            if (EstadosConMotivoRequerido.Contains(request.NuevoEstado)
+                && string.IsNullOrWhiteSpace(request.Motivo))
+                errors.Add($"El motivo es requerido para el estado {request.NuevoEstado}.");
 
-        // Motivo requerido para estados que no sean Disponible
-        if (!string.IsNullOrWhiteSpace(request.NuevoEstado)
-            && !request.NuevoEstado.Equals(
-                nameof(EstadoHabitacion.Disponible),
-                StringComparison.OrdinalIgnoreCase)
-            && string.IsNullOrWhiteSpace(request.Motivo))
-            errors.Add("El motivo es requerido para este estado.");
+            if (!EstadosConMotivoRequerido.Contains(request.NuevoEstado)
+                && !string.IsNullOrWhiteSpace(request.Motivo))
+                errors.Add($"El estado {request.NuevoEstado} no debe llevar motivo.");
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Motivo) && request.Motivo.Length > 255)
             errors.Add("El motivo no puede superar 255 caracteres.");

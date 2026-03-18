@@ -20,26 +20,29 @@ public sealed class HabitacionRepositoryEF
 
     public Task<bool> ExistsByNumeroAsync(
         int numero, CancellationToken ct = default)
-        => Db.Habitaciones
-            .AnyAsync(h => h.NumeroHabitacion == numero, ct);
+        => Db.Habitaciones.AnyAsync(h => h.NumeroHabitacion == numero, ct);
 
-    // Sin filtro de categoría — lo usa ReservaDomainPolicy.
+    // Busca por número de habitación (el número visible al cliente).
+    // NumeroHabitacion tiene índice único en la BD.
+    public Task<Habitacion?> GetByNumeroAsync(
+        int numero, CancellationToken ct = default)
+        => Db.Habitaciones
+            .AsNoTracking()
+            .FirstOrDefaultAsync(h => h.NumeroHabitacion == numero, ct);
+
     public Task<List<Habitacion>> GetDisponiblesAsync(
         DateTime entrada, DateTime salida, CancellationToken ct = default)
         => GetDisponiblesAsync(entrada, salida, null, ct);
 
-    // Con filtro de categoría — lo usa ListarHabitacionesDisponiblesUseCase.
     public Task<List<Habitacion>> GetDisponiblesAsync(
         DateTime entrada, DateTime salida, int? categoriaHabitacionId,
         CancellationToken ct = default)
     {
-        // Habitaciones en mantenimiento activo (sin FechaFin).
         var enMantenimiento = Db.HabitacionHistorial
             .Where(hh => hh.FechaFin == null &&
                          hh.EstadoHabitacion == EstadoHabitacion.Mantenimiento)
             .Select(hh => hh.HabitacionId);
 
-        // Habitaciones con reserva activa solapada en el rango.
         var conReserva =
             from dr in Db.DetallesReserva
             join r in Db.Reservas on dr.ReservaId equals r.ReservaId
@@ -66,16 +69,17 @@ public sealed class HabitacionRepositoryEF
         string? estado, int? categoriaId, int? piso,
         CancellationToken ct = default)
     {
-        var query = Db.Habitaciones.AsNoTracking();
+        var query = Db.Habitaciones
+            .Include(h => h.Historial)
+            .AsNoTracking()
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(estado) &&
-            Enum.TryParse<EstadoHabitacion>(estado, out var estadoEnum))
+            Enum.TryParse<EstadoHabitacion>(estado, ignoreCase: true, out var estadoEnum))
         {
-            var ids = Db.HabitacionHistorial
-                .Where(hh => hh.FechaFin == null && hh.EstadoHabitacion == estadoEnum)
-                .Select(hh => hh.HabitacionId);
-
-            query = query.Where(h => ids.Contains(h.HabitacionId));
+            query = query.Where(h =>
+                h.Historial.Any(hh => hh.FechaFin == null &&
+                                      hh.EstadoHabitacion == estadoEnum));
         }
 
         if (categoriaId.HasValue)

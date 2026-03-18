@@ -63,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<ITarifaTemporadaRepository, TarifaTemporadaRepositoryEF>();
         services.AddScoped<ITemporadaRepository, TemporadaRepositoryEF>();
         services.AddScoped<IUsuarioRepository, UsuarioRepositoryEF>();
+        services.AddScoped<IServicioTemporadaRepository, ServicioTemporadaRepositoryEF>();
 
         // Query Services — implementan contratos definidos en Domain
         services.AddScoped<IReportesQueryService, ReportesQueryService>();

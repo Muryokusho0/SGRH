@@ -5,11 +5,6 @@ using SGRH.Domain.Abstractions.Services;
 using SGRH.Domain.Entities.Auditoria;
 using SGRH.Domain.Entities.Reservas;
 using SGRH.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Application.UseCases.Reservas.CrearReserva;
 
@@ -42,31 +37,47 @@ public sealed class CrearReservaUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
+        // ── 1. Validar — fuera de transacción ─────────────────────────────
         var validacion = await _validator.ValidateAsync(request, ct);
         if (!validacion.IsValid)
             throw new ApplicationValidationException(validacion.Errors);
 
+        // ── 2. Verificar cliente existe — lectura fuera de transacción ────
         _ = await _clientes.GetByIdAsync(request.ClienteId, ct)
             ?? throw new NotFoundException("Cliente", request.ClienteId.ToString());
 
-        var reserva = new Reserva(request.ClienteId, request.FechaEntrada, request.FechaSalida);
+        // ── 3. Transacción ────────────────────────────────────────────────
+        await _uow.BeginTransactionAsync(ct);
+        try
+        {
+            var reserva = new Reserva(
+                request.ClienteId,
+                request.FechaEntrada,
+                request.FechaSalida);
 
-        await _reservas.AddAsync(reserva, ct);
-        await _uow.SaveChangesAsync(ct);
+            await _reservas.AddAsync(reserva, ct);
+            await _uow.SaveChangesAsync(ct);
 
-        await _auditoria.RegistrarAsync(new AuditoriaEvento(
-            usuarioId: usuarioActualId,
-            rol: usuarioActualRol,
-            usernameSnapshot: usernameActual,
-            accion: "CREATE",
-            modulo: "Reservas",
-            entidad: "Reserva",
-            entidadId: reserva.ReservaId.ToString(),
-            requestId: request.AuditInfo.RequestId,
-            ipOrigen: request.AuditInfo.IpOrigen,
-            userAgent: request.AuditInfo.UserAgent,
-            descripcion: $"Reserva creada para cliente {reserva.ClienteId}"), ct);
+            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+                usuarioId: usuarioActualId,
+                rol: usuarioActualRol,
+                usernameSnapshot: usernameActual,
+                accion: "CREATE",
+                modulo: "Reservas",
+                entidad: "Reserva",
+                entidadId: reserva.ReservaId.ToString(),
+                requestId: request.AuditInfo.RequestId,
+                ipOrigen: request.AuditInfo.IpOrigen,
+                userAgent: request.AuditInfo.UserAgent,
+                descripcion: $"Reserva creada para cliente {reserva.ClienteId}."), ct);
 
-        return new CrearReservaResponse(reserva.ReservaId, reserva.FechaReserva);
+            await _uow.CommitAsync(ct);
+            return new CrearReservaResponse(reserva.ReservaId, reserva.FechaReserva);
+        }
+        catch
+        {
+            await _uow.RollbackAsync(ct);
+            throw;
+        }
     }
 }

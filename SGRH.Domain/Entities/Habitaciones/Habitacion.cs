@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SGRH.Domain.Base;
+﻿using SGRH.Domain.Base;
 using SGRH.Domain.Common;
 using SGRH.Domain.Enums;
 using SGRH.Domain.Exceptions;
@@ -18,13 +12,10 @@ public sealed class Habitacion : EntityBase
     public int NumeroHabitacion { get; private set; }
     public int Piso { get; private set; }
 
-    // Colección privada — nadie puede modificar el historial directamente
-    // desde fuera. Solo a través del método CambiarEstado().
     private readonly List<HabitacionHistorial> _historial = [];
     public IReadOnlyCollection<HabitacionHistorial> Historial => _historial;
 
     // Propiedad calculada: devuelve el registro vigente (FechaFin == null).
-    // Útil para saber el estado actual sin consultar la BD.
     public HabitacionHistorial? EstadoActual
         => _historial.FirstOrDefault(h => h.FechaFin is null);
 
@@ -40,12 +31,13 @@ public sealed class Habitacion : EntityBase
         NumeroHabitacion = numeroHabitacion;
         Piso = piso;
 
-        _historial.Add(new HabitacionHistorial(HabitacionId, EstadoHabitacion.Disponible, null));
+        // El registro inicial de HabitacionHistorial (estado Disponible) lo crea
+        // automáticamente el trigger TR_HabitacionHistorial_Consistencia en la BD.
+        // No lo creamos aquí para evitar duplicados.
     }
 
     public void CambiarEstado(EstadoHabitacion nuevoEstado, string? motivo = null)
     {
-        // Verificar que no sea el mismo estado actual
         if (EstadoActual?.EstadoHabitacion == nuevoEstado)
             throw new BusinessRuleViolationException(
                 $"La habitación ya se encuentra en estado {nuevoEstado}.");
@@ -53,8 +45,7 @@ public sealed class Habitacion : EntityBase
         // Cerrar el registro vigente actual
         EstadoActual?.Cerrar();
 
-        // Crear el nuevo registro vigente
-        // HabitacionHistorial valida internamente las reglas de motivo
+        // Agregar el nuevo registro vigente
         _historial.Add(new HabitacionHistorial(HabitacionId, nuevoEstado, motivo));
     }
 

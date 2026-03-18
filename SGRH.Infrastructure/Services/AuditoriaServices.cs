@@ -3,12 +3,7 @@ using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Abstractions.Services;
 using SGRH.Domain.Abstractions.Storage;
 using SGRH.Domain.Entities.Auditoria;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace SGRH.Infrastructure.Services;
 
@@ -20,7 +15,6 @@ public sealed class AuditoriaService : IAuditoriaService
     private readonly ILogger<AuditoriaService> _logger;
 
     // Ruta en S3: auditoria/{año}/{mes}/{dia}/{AuditoriaEventoId}.json
-    // Ejemplo:   auditoria/2025/12/25/0000000042.json
     private static StoragePath BuildS3Path(AuditoriaEvento evento)
     {
         var fecha = evento.FechaUtc;
@@ -49,7 +43,33 @@ public sealed class AuditoriaService : IAuditoriaService
         // ── 2. Subir copia JSON a S3 (best-effort) ────────────────────────
         try
         {
-            var json = JsonSerializer.SerializeToUtf8Bytes(evento, _jsonOptions);
+            // Se proyecta un objeto anónimo desde las propiedades públicas de la entidad.
+            // No se usa Application.Mappers — Infrastructure solo referencia Domain y Persistence.
+            // Detalles se lee desde la propiedad pública IReadOnlyCollection<AuditoriaEventoDetalle>,
+            // que sí es accesible sin reflection.
+            var payload = new
+            {
+                evento.AuditoriaEventoId,
+                evento.FechaUtc,
+                evento.UsuarioId,
+                evento.UsernameSnapshot,
+                evento.Rol,
+                evento.Accion,
+                evento.Modulo,
+                evento.Entidad,
+                evento.EntidadId,
+                evento.RequestId,
+                evento.IpOrigen,
+                evento.UserAgent,
+                evento.Descripcion,
+                Detalles = evento.Detalles.Select(d => new
+                {
+                    d.Campo,
+                    d.ValorAnterior,
+                    d.ValorNuevo
+                })
+            };
+            var json = JsonSerializer.SerializeToUtf8Bytes(payload, _jsonOptions);
 
             var request = new FileUploadRequest(
                 path: BuildS3Path(evento),

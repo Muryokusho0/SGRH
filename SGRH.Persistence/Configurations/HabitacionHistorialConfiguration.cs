@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SGRH.Domain.Entities.Habitaciones;
 using SGRH.Domain.Enums;
@@ -14,7 +9,11 @@ public sealed class HabitacionHistorialConfiguration : IEntityTypeConfiguration<
 {
     public void Configure(EntityTypeBuilder<HabitacionHistorial> b)
     {
-        b.ToTable("HabitacionHistorial");
+        b.ToTable("HabitacionHistorial", t =>
+        {
+            t.HasTrigger("TR_HabitacionHistorial_Consistencia");
+        });
+
         b.HasKey(x => x.HabitacionHistorialId);
 
         b.Property(x => x.HabitacionHistorialId)
@@ -37,14 +36,12 @@ public sealed class HabitacionHistorialConfiguration : IEntityTypeConfiguration<
 
         b.Property(x => x.FechaFin)
             .HasColumnName("FechaFin")
-            .HasColumnType("datetime"); // nullable
+            .HasColumnType("datetime");
 
         b.Property(x => x.MotivoCambio)
             .HasColumnName("MotivoCambio")
             .HasMaxLength(255);
 
-        // HabitacionHistorial NO tiene propiedad de navegación Habitacion.
-        // La inversa Historial (backing field _historial) se declara en HabitacionConfiguration.
         b.HasOne<Habitacion>()
             .WithMany(h => h.Historial)
             .HasForeignKey(hh => hh.HabitacionId)

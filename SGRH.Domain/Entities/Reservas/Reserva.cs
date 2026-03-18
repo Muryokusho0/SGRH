@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SGRH.Domain.Base;
+﻿using SGRH.Domain.Base;
 using SGRH.Domain.Common;
 using SGRH.Domain.Enums;
 using SGRH.Domain.Abstractions.Policies;
@@ -36,37 +31,35 @@ public sealed class Reserva : EntityBase
     {
         Guard.AgainstOutOfRange(clienteId, nameof(clienteId), 0);
         Guard.AgainstInvalidDateRange(fechaEntrada, fechaSalida,
-                                      nameof(fechaEntrada), nameof(fechaSalida));
+            nameof(fechaEntrada), nameof(fechaSalida));
 
         ClienteId = clienteId;
         FechaEntrada = fechaEntrada;
         FechaSalida = fechaSalida;
         EstadoReserva = EstadoReserva.Pendiente;
-        FechaReserva = DateTime.UtcNow;
+        FechaReserva = HoraLocal.Ahora;
     }
 
-    // ─────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
     // Guard interno
-    // ─────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
 
     private void EnsureEditable()
     {
         if (EstadoReserva == EstadoReserva.Confirmada)
             throw new BusinessRuleViolationException(
                 "Una reserva confirmada no puede ser modificada.");
-
         if (EstadoReserva == EstadoReserva.Cancelada)
             throw new BusinessRuleViolationException(
                 "Una reserva cancelada no puede ser modificada.");
-
         if (EstadoReserva == EstadoReserva.Finalizada)
             throw new BusinessRuleViolationException(
                 "Una reserva finalizada no puede ser modificada.");
     }
 
-    // ─────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
     // Fechas
-    // ─────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
 
     public void CambiarFechas(
         DateTime nuevaEntrada,
@@ -75,10 +68,10 @@ public sealed class Reserva : EntityBase
     {
         Guard.AgainstNull(policy, nameof(policy));
         EnsureEditable();
-
         Guard.AgainstInvalidDateRange(nuevaEntrada, nuevaSalida,
-                                      nameof(nuevaEntrada), nameof(nuevaSalida));
+            nameof(nuevaEntrada), nameof(nuevaSalida));
 
+        // Validar disponibilidad de habitaciones en el nuevo rango
         foreach (var detalle in _habitaciones)
         {
             policy.EnsureHabitacionDisponible(
@@ -89,6 +82,7 @@ public sealed class Reserva : EntityBase
                 detalle.HabitacionId, nuevaEntrada, nuevaSalida);
         }
 
+        // Validar disponibilidad de servicios en la nueva temporada
         var temporadaId = policy.GetTemporadaId(nuevaEntrada);
         foreach (var servicio in _servicios)
             policy.EnsureServicioDisponibleEnTemporada(
@@ -97,8 +91,17 @@ public sealed class Reserva : EntityBase
         FechaEntrada = nuevaEntrada;
         FechaSalida = nuevaSalida;
 
-        RecalcularSnapshots(policy);
+        // NO se llama RecalcularSnapshots aquí.
+        // El trigger TR_Reserva_CambioFechas_RevalidarHabitaciones en la BD
+        // recalcula automáticamente TarifaAplicada y PrecioUnitarioAplicado
+        // cuando cambian FechaEntrada/FechaSalida en la tabla Reserva.
+        // Hacerlo también desde EF causaría UPDATEs con OUTPUT en tablas
+        // que tienen triggers, lo que SQL Server rechaza.
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // Habitaciones
+    // ─────────────────────────────────────────────────────────────
 
     public void AgregarHabitacion(int habitacionId, IReservaDomainPolicy policy)
     {
@@ -118,7 +121,6 @@ public sealed class Reserva : EntityBase
             habitacionId, FechaEntrada, FechaSalida);
 
         var tarifa = policy.GetTarifaAplicada(habitacionId, FechaEntrada);
-
         _habitaciones.Add(new DetalleReserva(ReservaId, habitacionId, tarifa));
 
         if (_servicios.Count > 0)
@@ -138,6 +140,10 @@ public sealed class Reserva : EntityBase
         if (_servicios.Count > 0)
             RecalcularSnapshots(policy);
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // Servicios
+    // ─────────────────────────────────────────────────────────────
 
     public void AgregarServicio(
         int servicioAdicionalId,
@@ -160,36 +166,36 @@ public sealed class Reserva : EntityBase
         var temporadaId = policy.GetTemporadaId(FechaEntrada);
         policy.EnsureServicioDisponibleEnTemporada(servicioAdicionalId, temporadaId);
 
-        var precioUnitario = policy.GetPrecioServicioAplicado(
-            ReservaId, servicioAdicionalId);
-
+        var precioUnitario = policy.GetPrecioServicioAplicado(ReservaId, servicioAdicionalId);
         _servicios.Add(new ReservaServicioAdicional(
             ReservaId, servicioAdicionalId, cantidad, precioUnitario));
-    }
-
-    public void CambiarCantidadServicio(int servicioAdicionalId, int nuevaCantidad)
-    {
-        EnsureEditable();
-
-        var servicio = _servicios
-            .FirstOrDefault(s => s.ServicioAdicionalId == servicioAdicionalId)
-            ?? throw new NotFoundException(
-                "ReservaServicioAdicional", servicioAdicionalId.ToString());
-
-        servicio.CambiarCantidad(nuevaCantidad);
     }
 
     public void QuitarServicio(int servicioAdicionalId)
     {
         EnsureEditable();
 
-        var servicio = _servicios
-            .FirstOrDefault(s => s.ServicioAdicionalId == servicioAdicionalId)
+        var servicio = _servicios.FirstOrDefault(s => s.ServicioAdicionalId == servicioAdicionalId)
             ?? throw new NotFoundException(
                 "ReservaServicioAdicional", servicioAdicionalId.ToString());
 
         _servicios.Remove(servicio);
     }
+
+    public void CambiarCantidadServicio(int servicioAdicionalId, int nuevaCantidad)
+    {
+        EnsureEditable();
+
+        var servicio = _servicios.FirstOrDefault(s => s.ServicioAdicionalId == servicioAdicionalId)
+            ?? throw new NotFoundException(
+                "ReservaServicioAdicional", servicioAdicionalId.ToString());
+
+        servicio.CambiarCantidad(nuevaCantidad);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Estado
+    // ─────────────────────────────────────────────────────────────
 
     public void Confirmar()
     {
@@ -226,25 +232,27 @@ public sealed class Reserva : EntityBase
         EstadoReserva = EstadoReserva.Finalizada;
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // Privado
+    // ─────────────────────────────────────────────────────────────
+
+    // Solo se llama desde AgregarHabitacion y QuitarHabitacion —
+    // nunca desde CambiarFechas (el trigger de BD lo maneja).
     private void RecalcularSnapshots(IReservaDomainPolicy policy)
     {
         if (EstadoReserva != EstadoReserva.Pendiente) return;
 
         foreach (var detalle in _habitaciones)
         {
-            var nuevaTarifa = policy.GetTarifaAplicada(
-                detalle.HabitacionId, FechaEntrada);
+            var nuevaTarifa = policy.GetTarifaAplicada(detalle.HabitacionId, FechaEntrada);
             detalle.ActualizarTarifa(nuevaTarifa);
         }
 
         var temporadaId = policy.GetTemporadaId(FechaEntrada);
         foreach (var servicio in _servicios)
         {
-            policy.EnsureServicioDisponibleEnTemporada(
-                servicio.ServicioAdicionalId, temporadaId);
-
-            var nuevoPrecio = policy.GetPrecioServicioAplicado(
-                ReservaId, servicio.ServicioAdicionalId);
+            policy.EnsureServicioDisponibleEnTemporada(servicio.ServicioAdicionalId, temporadaId);
+            var nuevoPrecio = policy.GetPrecioServicioAplicado(ReservaId, servicio.ServicioAdicionalId);
             servicio.ActualizarPrecioUnitario(nuevoPrecio);
         }
     }

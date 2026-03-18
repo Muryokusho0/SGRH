@@ -1,15 +1,10 @@
-﻿using SGRH.Application.Common.Exceptions;
+﻿using SGRH.Application.Abstractions;
+using SGRH.Application.Common.Exceptions;
 using SGRH.Domain.Abstractions.Policies;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Abstractions.Services;
 using SGRH.Domain.Entities.Auditoria;
 using SGRH.Domain.Exceptions;
-using SGRH.Application.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Application.UseCases.Reservas.AgregarHabitacion;
 
@@ -42,28 +37,43 @@ public sealed class AgregarHabitacionUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
+        // ── 1. Validar — fuera de transacción ─────────────────────────────
         var validacion = await _validator.ValidateAsync(request, ct);
         if (!validacion.IsValid)
             throw new ApplicationValidationException(validacion.Errors);
 
+        // ── 2. Buscar — lectura fuera de transacción ──────────────────────
         var reserva = await _reservas.GetByIdWithDetallesAsync(request.ReservaId, ct)
             ?? throw new NotFoundException("Reserva", request.ReservaId.ToString());
 
-        reserva.AgregarHabitacion(request.HabitacionId, _policy);
+        // ── 3. Transacción ────────────────────────────────────────────────
+        await _uow.BeginTransactionAsync(ct);
+        try
+        {
+            // La entidad + policy lanzan si la habitación no está disponible
+            reserva.AgregarHabitacion(request.HabitacionId, _policy);
 
-        await _uow.SaveChangesAsync(ct);
+            await _uow.SaveChangesAsync(ct);
 
-        await _auditoria.RegistrarAsync(new AuditoriaEvento(
-            usuarioId: usuarioActualId,
-            rol: usuarioActualRol,
-            usernameSnapshot: usernameActual,
-            accion: "UPDATE",
-            modulo: "Reservas",
-            entidad: "Reserva",
-            entidadId: reserva.ReservaId.ToString(),
-            requestId: request.AuditInfo.RequestId,
-            ipOrigen: request.AuditInfo.IpOrigen,
-            userAgent: request.AuditInfo.UserAgent,
-            descripcion: $"Habitación {request.HabitacionId} agregada a reserva {reserva.ReservaId}"), ct);
+            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+                usuarioId: usuarioActualId,
+                rol: usuarioActualRol,
+                usernameSnapshot: usernameActual,
+                accion: "UPDATE",
+                modulo: "Reservas",
+                entidad: "Reserva",
+                entidadId: reserva.ReservaId.ToString(),
+                requestId: request.AuditInfo.RequestId,
+                ipOrigen: request.AuditInfo.IpOrigen,
+                userAgent: request.AuditInfo.UserAgent,
+                descripcion: $"Habitación {request.HabitacionId} agregada a reserva {reserva.ReservaId}."), ct);
+
+            await _uow.CommitAsync(ct);
+        }
+        catch
+        {
+            await _uow.RollbackAsync(ct);
+            throw;
+        }
     }
 }

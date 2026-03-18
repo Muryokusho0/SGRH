@@ -1,4 +1,6 @@
-﻿using SGRH.Application.Common.Exceptions;
+﻿using SGRH.Application.Abstractions;
+using SGRH.Application.Common.Exceptions;
+using SGRH.Application.Mappers;
 using SGRH.Domain.Abstractions.Auth;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Abstractions.Services;
@@ -6,13 +8,6 @@ using SGRH.Domain.Entities.Auditoria;
 using SGRH.Domain.Entities.Seguridad;
 using SGRH.Domain.Enums;
 using SGRH.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SGRH.Application.Abstractions;
-using SGRH.Application.Mappers;
 
 namespace SGRH.Application.UseCases.Usuarios.CrearUsuario;
 
@@ -38,8 +33,6 @@ public sealed class CrearUsuarioUseCase
         _validator = validator;
     }
 
-    // usuarioActualId / usuarioActualRol / usernameActual:
-    // datos del ADMIN autenticado que ejecuta la acción, necesarios para auditoría.
     public async Task<CrearUsuarioResponse> ExecuteAsync(
         CrearUsuarioRequest request,
         int usuarioActualId,
@@ -47,47 +40,52 @@ public sealed class CrearUsuarioUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
-        // ── 1. Validar ────────────────────────────────────────────────────
+        // ── 1. Validar — fuera de transacción ─────────────────────────────
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
             throw new ApplicationValidationException(validation.Errors);
 
-        // ── 2. Unicidad de email/username ─────────────────────────────────
+        // ── 2. Unicidad — lectura fuera de transacción ────────────────────
         if (await _usuarios.ExistsByUsernameAsync(request.Email, ct))
             throw new ConflictException(
                 $"Ya existe un usuario con el email '{request.Email}'.");
 
-        // ── 3. Parsear rol ────────────────────────────────────────────────
-        // El Validator garantiza que el valor es ADMIN o RECEPCIONISTA.
+        // El Validator garantiza que el valor es ADMIN o RECEPCIONISTA
         var rol = Enum.Parse<RolUsuario>(request.Rol, ignoreCase: true);
 
-        // ── 4. Crear usuario ──────────────────────────────────────────────
-        var usuario = new Usuario(
-            clienteId: null,           // ADMIN/RECEPCIONISTA nunca tienen ClienteId
-            username: request.Email,  // Username = Email, igual que en Register
-            passwordHash: _hasher.Hash(request.Password),
-            rol: rol);
+        // ── 3. Transacción ────────────────────────────────────────────────
+        await _unitOfWork.BeginTransactionAsync(ct);
+        try
+        {
+            var usuario = new Usuario(
+                clienteId: null,           // ADMIN/RECEPCIONISTA nunca tienen ClienteId
+                username: request.Email,  // Username = Email
+                passwordHash: _hasher.Hash(request.Password),
+                rol: rol);
 
-        await _usuarios.AddAsync(usuario, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+            await _usuarios.AddAsync(usuario, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
 
-        // ── 5. Auditoría ──────────────────────────────────────────────────
-        var evento = new AuditoriaEvento(
-            usuarioId: usuarioActualId,
-            rol: usuarioActualRol,
-            usernameSnapshot: usernameActual,
-            accion: "CREATE",
-            modulo: "Usuarios",
-            entidad: "Usuario",
-            entidadId: usuario.UsuarioId.ToString(),
-            requestId: request.AuditInfo.RequestId,
-            ipOrigen: request.AuditInfo.IpOrigen,
-            userAgent: request.AuditInfo.UserAgent,
-            descripcion: $"Usuario '{request.Email}' creado con rol {rol}.");
+            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+                usuarioId: usuarioActualId,
+                rol: usuarioActualRol,
+                usernameSnapshot: usernameActual,
+                accion: "CREATE",
+                modulo: "Usuarios",
+                entidad: "Usuario",
+                entidadId: usuario.UsuarioId.ToString(),
+                requestId: request.AuditInfo.RequestId,
+                ipOrigen: request.AuditInfo.IpOrigen,
+                userAgent: request.AuditInfo.UserAgent,
+                descripcion: $"Usuario '{request.Email}' creado con rol {rol}."), ct);
 
-        await _auditoria.RegistrarAsync(evento, ct);
-
-        // ── 6. Respuesta ──────────────────────────────────────────────────
-        return new CrearUsuarioResponse(usuario.ToDto());
+            await _unitOfWork.CommitAsync(ct);
+            return new CrearUsuarioResponse(usuario.ToDto());
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync(ct);
+            throw;
+        }
     }
 }

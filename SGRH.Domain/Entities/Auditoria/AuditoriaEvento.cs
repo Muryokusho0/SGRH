@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SGRH.Domain.Base;
+﻿using SGRH.Domain.Base;
 using SGRH.Domain.Common;
 using SGRH.Domain.Exceptions;
 
@@ -14,25 +8,20 @@ public sealed class AuditoriaEvento : EntityBase
 {
     public long AuditoriaEventoId { get; private set; }
     public DateTime FechaUtc { get; private set; }
-    public int UsuarioId { get; private set; }           // NOT NULL en BD
-    public string Rol { get; private set; } = default!;  // snapshot VARCHAR 20
-    public string UsernameSnapshot { get; private set; } = default!; // snapshot NVARCHAR 100
+    public int UsuarioId { get; private set; }
+    public string Rol { get; private set; } = default!;
+    public string UsernameSnapshot { get; private set; } = default!;
 
-    // ── Qué hizo ───────────────────────────────────
-    public string Accion { get; private set; } = default!;  // Ej: CREATE, UPDATE, CANCEL. NVARCHAR 50
-    public string Modulo { get; private set; } = default!;  // Ej: Reservas, Tarifas. NVARCHAR 100
-    public string Entidad { get; private set; } = default!; // Ej: Reserva. NVARCHAR 100
-    public string EntidadId { get; private set; } = default!; // PK como texto. NVARCHAR 64
+    public string Accion { get; private set; } = default!;
+    public string Modulo { get; private set; } = default!;
+    public string Entidad { get; private set; } = default!;
+    public string EntidadId { get; private set; } = default!;
 
-    // ── Contexto técnico ───────────────────────────
-    public Guid RequestId { get; private set; }          // correlación por request
-    public string IpOrigen { get; private set; } = default!;  // VARCHAR 45
-    public string UserAgent { get; private set; } = default!; // NVARCHAR 255
+    public Guid RequestId { get; private set; }
+    public string IpOrigen { get; private set; } = default!;
+    public string UserAgent { get; private set; } = default!;
+    public string Descripcion { get; private set; } = default!;
 
-    // ── Descripción humana ─────────────────────────
-    public string Descripcion { get; private set; } = default!; // NVARCHAR 500
-
-    // Colección de cambios campo por campo.
     private readonly List<AuditoriaEventoDetalle> _detalles = [];
     public IReadOnlyCollection<AuditoriaEventoDetalle> Detalles => _detalles;
 
@@ -63,7 +52,7 @@ public sealed class AuditoriaEvento : EntityBase
         Guard.AgainstNullOrWhiteSpace(descripcion, nameof(descripcion), 500);
 
         if (requestId == Guid.Empty)
-            throw new Exceptions.ValidationException("RequestId no puede ser un Guid vacío.");
+            throw new ValidationException("RequestId no puede ser un Guid vacío.");
 
         UsuarioId = usuarioId;
         Rol = rol;
@@ -76,13 +65,20 @@ public sealed class AuditoriaEvento : EntityBase
         IpOrigen = ipOrigen;
         UserAgent = userAgent;
         Descripcion = descripcion;
-        FechaUtc = DateTime.UtcNow;
+
+        // ← Hora local UTC-4, no UTC
+        FechaUtc = HoraLocal.Ahora;
     }
 
     public void AgregarDetalle(string campo, string? valorAnterior, string? valorNuevo)
     {
+        // auditoriaEventoId puede ser 0 si el evento aún no fue guardado.
+        // EF Core propaga el FK automáticamente al hacer SaveChanges.
+        // ValorAnterior y ValorNuevo son NOT NULL en BD — convertir null a string.Empty.
+        // Semánticamente: string.Empty = "existía pero estaba vacío/sin valor",
+        // lo cual es correcto para campos opcionales como MotivoCambio.
         _detalles.Add(new AuditoriaEventoDetalle(
-            AuditoriaEventoId, campo, valorAnterior, valorNuevo));
+            AuditoriaEventoId, campo, valorAnterior ?? string.Empty, valorNuevo ?? string.Empty));
     }
 
     protected override object GetKey() => AuditoriaEventoId;

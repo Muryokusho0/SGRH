@@ -2,19 +2,9 @@
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Enums;
 using SGRH.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Infrastructure.Services;
 
-// Implementación de IReservaDomainPolicy.
-// Puente entre las reglas de negocio sincrónicas del dominio
-// y los repositorios async de persistencia.
-// El bloqueo (.GetAwaiter().GetResult()) es intencional: la interfaz del dominio
-// es síncrona por diseño — los métodos de entidad no pueden ser async.
 public sealed class ReservaDomainPolicy : IReservaDomainPolicy
 {
     private readonly ITemporadaRepository _temporadas;
@@ -43,15 +33,11 @@ public sealed class ReservaDomainPolicy : IReservaDomainPolicy
         _servicioPrecios = servicioPrecios;
     }
 
-    // ── Temporada ─────────────────────────────────────────────────────────
-
     public int? GetTemporadaId(DateTime fechaEntrada)
         => _temporadas
             .GetByFechaAsync(fechaEntrada)
             .GetAwaiter().GetResult()
             ?.TemporadaId;
-
-    // ── Disponibilidad de habitación ──────────────────────────────────────
 
     public void EnsureHabitacionDisponible(
         int habitacionId, DateTime fechaEntrada, DateTime fechaSalida, int? reservaId)
@@ -67,8 +53,6 @@ public sealed class ReservaDomainPolicy : IReservaDomainPolicy
                 $"para el rango {fechaEntrada:d} – {fechaSalida:d}.");
     }
 
-    // ── Mantenimiento ─────────────────────────────────────────────────────
-
     public void EnsureHabitacionNoEnMantenimiento(
         int habitacionId, DateTime fechaEntrada, DateTime fechaSalida)
     {
@@ -82,9 +66,6 @@ public sealed class ReservaDomainPolicy : IReservaDomainPolicy
                 $"La habitación {habitacionId} está en mantenimiento " +
                 $"y no puede ser reservada.");
     }
-    // ── Tarifa aplicada ───────────────────────────────────────────────────
-    // Lógica: si hay temporada activa → usar TarifaTemporada para la categoría.
-    //         Si no hay temporada     → usar PrecioBase de la categoría.
 
     public decimal GetTarifaAplicada(int habitacionId, DateTime fechaEntrada)
     {
@@ -105,7 +86,6 @@ public sealed class ReservaDomainPolicy : IReservaDomainPolicy
                 return tarifaTemporada.Precio;
         }
 
-        // Sin temporada activa (o sin tarifa configurada) → precio base de la categoría
         var categoria = _categorias
             .GetByIdAsync(habitacion.CategoriaHabitacionId)
             .GetAwaiter().GetResult()
@@ -114,8 +94,6 @@ public sealed class ReservaDomainPolicy : IReservaDomainPolicy
 
         return categoria.PrecioBase;
     }
-
-    // ── Disponibilidad de servicio en temporada ───────────────────────────
 
     public void EnsureServicioDisponibleEnTemporada(
         int servicioAdicionalId, int? temporadaId)
@@ -127,13 +105,14 @@ public sealed class ReservaDomainPolicy : IReservaDomainPolicy
             .GetAwaiter().GetResult()
             ?? throw new NotFoundException("ServicioAdicional", servicioAdicionalId.ToString());
 
+        // Si aplica a todas las temporadas, no hay nada que validar
+        if (servicio.AplicaTodasTemporadas) return;
+
         if (!servicio.TemporadaIds.Contains(temporadaId.Value))
             throw new BusinessRuleViolationException(
-                $"El servicio {servicioAdicionalId} no está disponible " +
-                $"para la temporada {temporadaId.Value}.");
+                $"El servicio '{servicio.NombreServicio}' no está disponible " +
+                $"para la temporada activa en las fechas de la reserva.");
     }
-
-    // ── Precio de servicio (regla MAX por categoría) ──────────────────────
 
     public decimal GetPrecioServicioAplicado(int reservaId, int servicioAdicionalId)
     {

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SGRH.Domain.Entities.Servicios;
 
@@ -30,6 +25,11 @@ public sealed class ServicioAdicionalConfiguration : IEntityTypeConfiguration<Se
             .HasColumnName("tipoServicio")
             .HasMaxLength(50)
             .IsUnicode(true)
+            .IsRequired();
+
+        b.Property(x => x.AplicaTodasTemporadas)
+            .HasColumnName("AplicaTodasTemporadas")
+            .HasDefaultValue(false)
             .IsRequired();
 
         b.HasIndex(x => new { x.TipoServicio, x.NombreServicio })

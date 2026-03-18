@@ -19,6 +19,21 @@ public sealed class ReservaRepositoryEF
             .Include(r => r.Servicios)
             .FirstOrDefaultAsync(r => r.ReservaId == reservaId, ct);
 
+    public Task<Reserva?> GetByIdWithDetallesAsNoTrackingAsync(
+        int reservaId, CancellationToken ct = default)
+        => Db.Reservas
+            .AsNoTracking()
+            .Include(r => r.Habitaciones)
+            .Include(r => r.Servicios)
+            .FirstOrDefaultAsync(r => r.ReservaId == reservaId, ct);
+
+    public Task ActualizarFechasAsync(
+        int reservaId, DateTime nuevaEntrada, DateTime nuevaSalida,
+        CancellationToken ct = default)
+        => Db.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE dbo.Reserva SET FechaEntrada = {nuevaEntrada}, FechaSalida = {nuevaSalida} WHERE ReservaId = {reservaId}",
+            ct);
+
     public Task<List<Reserva>> GetByClienteAsync(
         int clienteId, CancellationToken ct = default)
         => Db.Reservas
@@ -28,11 +43,8 @@ public sealed class ReservaRepositoryEF
             .ToListAsync(ct);
 
     public Task<bool> HabitacionTieneReservaActivaAsync(
-        int habitacionId,
-        DateTime entrada,
-        DateTime salida,
-        int? excluirReservaId,
-        CancellationToken ct = default)
+        int habitacionId, DateTime entrada, DateTime salida,
+        int? excluirReservaId, CancellationToken ct = default)
         => (from dr in Db.DetallesReserva.AsNoTracking()
             join r in Db.Reservas.AsNoTracking() on dr.ReservaId equals r.ReservaId
             where dr.HabitacionId == habitacionId
@@ -43,13 +55,32 @@ public sealed class ReservaRepositoryEF
             select dr.DetalleReservaId)
            .AnyAsync(ct);
 
+    public async Task<List<RangoOcupadoDto>> GetRangosOcupadosPorHabitacionAsync(
+        int habitacionId, CancellationToken ct = default)
+    {
+        var rangos = await (
+            from dr in Db.DetallesReserva.AsNoTracking()
+            join r in Db.Reservas.AsNoTracking() on dr.ReservaId equals r.ReservaId
+            where dr.HabitacionId == habitacionId
+               && r.EstadoReserva != EstadoReserva.Cancelada
+               && r.FechaSalida >= DateTime.Today
+            orderby r.FechaEntrada
+            select new
+            {
+                r.FechaEntrada,
+                r.FechaSalida,
+                Estado = r.EstadoReserva.ToString()
+            }).ToListAsync(ct);
+
+        return rangos
+            .Select(r => new RangoOcupadoDto(r.FechaEntrada, r.FechaSalida, r.Estado))
+            .ToList();
+    }
+
     public Task<List<Reserva>> BuscarAsync(
-        int? clienteId,
-        string? estado,
-        DateTime? fechaDesde,
-        DateTime? fechaHasta,
-        DateTime? reservadaDesde,
-        DateTime? reservadaHasta,
+        int? clienteId, string? estado,
+        DateTime? fechaDesde, DateTime? fechaHasta,
+        DateTime? reservadaDesde, DateTime? reservadaHasta,
         CancellationToken ct = default)
     {
         var query = Db.Reservas.AsNoTracking();

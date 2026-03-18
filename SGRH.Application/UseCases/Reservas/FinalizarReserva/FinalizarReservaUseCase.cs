@@ -3,11 +3,6 @@ using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Abstractions.Services;
 using SGRH.Domain.Entities.Auditoria;
 using SGRH.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Application.UseCases.Reservas.FinalizarReserva;
 
@@ -35,24 +30,38 @@ public sealed class FinalizarReservaUseCase
         AuditInfo auditInfo,
         CancellationToken ct = default)
     {
+        // ── 1. Buscar — lectura fuera de transacción ──────────────────────
         var reserva = await _reservas.GetByIdWithDetallesAsync(reservaId, ct)
             ?? throw new NotFoundException("Reserva", reservaId.ToString());
 
-        reserva.Finalizar();
+        // ── 2. Transacción ────────────────────────────────────────────────
+        await _uow.BeginTransactionAsync(ct);
+        try
+        {
+            // La entidad lanza BusinessRuleViolationException si no está Confirmada
+            reserva.Finalizar();
 
-        await _uow.SaveChangesAsync(ct);
+            await _uow.SaveChangesAsync(ct);
 
-        await _auditoria.RegistrarAsync(new AuditoriaEvento(
-            usuarioId: usuarioActualId,
-            rol: usuarioActualRol,
-            usernameSnapshot: usernameActual,
-            accion: "UPDATE",
-            modulo: "Reservas",
-            entidad: "Reserva",
-            entidadId: reserva.ReservaId.ToString(),
-            requestId: auditInfo.RequestId,
-            ipOrigen: auditInfo.IpOrigen,
-            userAgent: auditInfo.UserAgent,
-            descripcion: $"Reserva {reserva.ReservaId} finalizada. CostoTotal: {reserva.CostoTotal:C}"), ct);
+            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+                usuarioId: usuarioActualId,
+                rol: usuarioActualRol,
+                usernameSnapshot: usernameActual,
+                accion: "UPDATE",
+                modulo: "Reservas",
+                entidad: "Reserva",
+                entidadId: reserva.ReservaId.ToString(),
+                requestId: auditInfo.RequestId,
+                ipOrigen: auditInfo.IpOrigen,
+                userAgent: auditInfo.UserAgent,
+                descripcion: $"Reserva {reserva.ReservaId} finalizada. CostoTotal: {reserva.CostoTotal:C}"), ct);
+
+            await _uow.CommitAsync(ct);
+        }
+        catch
+        {
+            await _uow.RollbackAsync(ct);
+            throw;
+        }
     }
 }

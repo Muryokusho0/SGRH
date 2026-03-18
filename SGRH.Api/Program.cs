@@ -1,23 +1,29 @@
-using Microsoft.EntityFrameworkCore;
 using SGRH.Api.Configuration;
+using SGRH.Api.Middleware;
+using SGRH.Api.Seed;
 using SGRH.Application.DependencyInjection;
 using SGRH.Auth.DependencyInjection;
 using SGRH.Infrastructure.DependencyInjection;
-using SGRH.Persistence.Context;
+using SGRH.Api.Converters;
 
 namespace SGRH.Api;
+
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // ── Servicios ─────────────────────────────────────────────────
-        builder.Services.AddControllers();
+        // ── Servicios ─────────────────────────────────────────────────────
+        builder.Services.AddControllers()
+            .AddJsonOptions(opt =>
+             {
+                 opt.JsonSerializerOptions.Converters.Add(
+                     new DateTimeLocalConverter());
+             });
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen(opt =>
         {
-            // Permite enviar el token JWT desde Swagger
             opt.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
             {
                 Name = "Authorization",
@@ -49,14 +55,17 @@ public class Program
         // Auth: JWT generator, JWT bearer middleware, BCrypt
         builder.Services.AddAuth(builder.Configuration);
 
-        // Policies por rol
+        // Policies por rol: SoloAdmin, SoloCliente, AdminORecepcionista, Autenticado
         builder.Services.AddAuthorizationPolicies();
 
-        //Aplication: MediatR, AutoMapper, validadores, servicios de aplicación
+        // Application: validadores, UseCases
         builder.Services.AddApplication();
 
-        // ── Pipeline ──────────────────────────────────────────────────
+        // ── Pipeline ──────────────────────────────────────────────────────
         var app = builder.Build();
+
+        // ① Excepciones — siempre primero para capturar todo el pipeline
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         if (app.Environment.IsDevelopment())
         {
@@ -65,9 +74,12 @@ public class Program
         }
 
         app.UseHttpsRedirection();
-        app.UseAuthentication();   // ← debe ir antes de UseAuthorization
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+
+        // ② Seed — crea el primer admin si no existe ninguno
+        await DbSeeder.SeedAsync(app);
 
         app.Run();
     }

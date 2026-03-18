@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SGRH.Domain.Entities.Habitaciones;
+﻿using SGRH.Domain.Entities.Habitaciones;
 
 namespace SGRH.Domain.Abstractions.Repositories;
 
@@ -15,11 +10,13 @@ public interface IHabitacionRepository : IRepository<Habitacion, int>
     Task<bool> ExistsByNumeroAsync(
         int numero, CancellationToken ct = default);
 
-    // Sin filtro de categoría — lo usa ReservaDomainPolicy.
+    // Resuelve el HabitacionId a partir del número visible al cliente.
+    Task<Habitacion?> GetByNumeroAsync(
+        int numero, CancellationToken ct = default);
+
     Task<List<Habitacion>> GetDisponiblesAsync(
         DateTime entrada, DateTime salida, CancellationToken ct = default);
 
-    // Con filtro de categoría — lo usa ListarHabitacionesDisponiblesUseCase.
     Task<List<Habitacion>> GetDisponiblesAsync(
         DateTime entrada, DateTime salida, int? categoriaHabitacionId,
         CancellationToken ct = default);

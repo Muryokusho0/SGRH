@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SGRH.Domain.Entities.Reservas;
 using SGRH.Domain.Entities.Servicios;
@@ -15,7 +10,12 @@ public sealed class ReservaServicioAdicionalConfiguration
 {
     public void Configure(EntityTypeBuilder<ReservaServicioAdicional> b)
     {
-        b.ToTable("ReservaServicioAdicional");
+        b.ToTable("ReservaServicioAdicional", t =>
+        {
+            t.HasTrigger("TR_RSA_Confirmada_BloquearCambios");
+            t.HasTrigger("TR_RSA_CalcularPrecio_Update");
+        });
+
         b.HasKey(x => x.ReservaServicioAdicionalId);
 
         b.Property(x => x.ReservaServicioAdicionalId)
@@ -28,18 +28,18 @@ public sealed class ReservaServicioAdicionalConfiguration
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
-        // SubTotal es calculado en memoria — no persiste
+        // SubTotal es calculado en memoria — no persiste desde EF.
+        // SubTotalAplicado es columna computada PERSISTED en SQL Server —
+        // EF no la mapea para evitar que ReaderModificationCommandBatch
+        // intente leerla con OUTPUT clause, lo cual falla con triggers.
         b.Ignore(x => x.SubTotal);
 
-        // RSA NO tiene propiedad de navegación Reserva.
-        // La colección inversa _servicios se expone como Servicios en Reserva.
         b.HasOne<Reserva>()
             .WithMany(r => r.Servicios)
             .HasForeignKey(x => x.ReservaId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
-        // RSA NO tiene propiedad de navegación ServicioAdicional.
         b.HasOne<ServicioAdicional>()
             .WithMany()
             .HasForeignKey(x => x.ServicioAdicionalId)

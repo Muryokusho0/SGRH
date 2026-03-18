@@ -6,11 +6,6 @@ using SGRH.Domain.Abstractions.Services;
 using SGRH.Domain.Entities.Auditoria;
 using SGRH.Domain.Entities.Servicios;
 using SGRH.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Application.UseCases.Servicios.CrearServicio;
 
@@ -40,40 +35,47 @@ public sealed class CrearServicioUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
-        // ── 1. Validar ────────────────────────────────────────────────────
+        // ── 1. Validar — fuera de transacción ─────────────────────────────
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
             throw new ApplicationValidationException(validation.Errors);
 
-        // ── 2. Unicidad de nombre ─────────────────────────────────────────
+        // ── 2. Unicidad — lectura fuera de transacción ────────────────────
         if (await _servicios.ExistsByNombreAsync(request.NombreServicio, ct))
             throw new ConflictException(
                 $"Ya existe un servicio con el nombre '{request.NombreServicio}'.");
 
-        // ── 3. Crear ──────────────────────────────────────────────────────
-        var servicio = new ServicioAdicional(
-            request.NombreServicio,
-            request.Descripcion);
+        // ── 3. Transacción ────────────────────────────────────────────────
+        await _unitOfWork.BeginTransactionAsync(ct);
+        try
+        {
+            var servicio = new ServicioAdicional(
+                request.NombreServicio,
+                request.Descripcion);
 
-        await _servicios.AddAsync(servicio, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+            await _servicios.AddAsync(servicio, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
 
-        // ── 4. Auditoría ──────────────────────────────────────────────────
-        var evento = new AuditoriaEvento(
-            usuarioId: usuarioActualId,
-            rol: usuarioActualRol,
-            usernameSnapshot: usernameActual,
-            accion: "CREATE",
-            modulo: "Servicios",
-            entidad: "ServicioAdicional",
-            entidadId: servicio.ServicioAdicionalId.ToString(),
-            requestId: request.AuditInfo.RequestId,
-            ipOrigen: request.AuditInfo.IpOrigen,
-            userAgent: request.AuditInfo.UserAgent,
-            descripcion: $"Servicio '{request.NombreServicio}' creado.");
+            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+                usuarioId: usuarioActualId,
+                rol: usuarioActualRol,
+                usernameSnapshot: usernameActual,
+                accion: "CREATE",
+                modulo: "Servicios",
+                entidad: "ServicioAdicional",
+                entidadId: servicio.ServicioAdicionalId.ToString(),
+                requestId: request.AuditInfo.RequestId,
+                ipOrigen: request.AuditInfo.IpOrigen,
+                userAgent: request.AuditInfo.UserAgent,
+                descripcion: $"Servicio '{request.NombreServicio}' creado."), ct);
 
-        await _auditoria.RegistrarAsync(evento, ct);
-
-        return new CrearServicioResponse(servicio.ToDto());
+            await _unitOfWork.CommitAsync(ct);
+            return new CrearServicioResponse(servicio.ToDto());
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync(ct);
+            throw;
+        }
     }
 }

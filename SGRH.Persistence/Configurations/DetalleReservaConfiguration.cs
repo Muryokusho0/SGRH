@@ -2,11 +2,6 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SGRH.Domain.Entities.Habitaciones;
 using SGRH.Domain.Entities.Reservas;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Persistence.Configurations;
 
@@ -14,7 +9,14 @@ public sealed class DetalleReservaConfiguration : IEntityTypeConfiguration<Detal
 {
     public void Configure(EntityTypeBuilder<DetalleReserva> b)
     {
-        b.ToTable("DetalleReserva");
+        b.ToTable("DetalleReserva", t =>
+        {
+            t.HasTrigger("TR_DetalleReserva_NoPermitirMantenimiento");
+            t.HasTrigger("TR_DetalleReserva_NoSolapamientoHabitacion");
+            t.HasTrigger("TR_DetalleReserva_CalcularTarifa_Update");
+            t.HasTrigger("TR_DetalleReserva_Confirmada_BloquearCambios");
+        });
+
         b.HasKey(x => x.DetalleReservaId);
 
         b.Property(x => x.DetalleReservaId)
@@ -24,15 +26,12 @@ public sealed class DetalleReservaConfiguration : IEntityTypeConfiguration<Detal
             .HasPrecision(10, 2)
             .IsRequired();
 
-        // Reserva → Habitaciones (colección _habitaciones).
-        // DetalleReserva NO tiene propiedad de navegación Reserva.
         b.HasOne<Reserva>()
             .WithMany(r => r.Habitaciones)
             .HasForeignKey(d => d.ReservaId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Habitacion no expone colección de DetalleReserva.
         b.HasOne<Habitacion>()
             .WithMany()
             .HasForeignKey(d => d.HabitacionId)

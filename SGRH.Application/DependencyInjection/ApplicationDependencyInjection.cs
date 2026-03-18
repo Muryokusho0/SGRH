@@ -33,6 +33,8 @@ using SGRH.Application.UseCases.Servicios.CrearServicio;
 using SGRH.Application.UseCases.Servicios.GetServicio;
 using SGRH.Application.UseCases.Servicios.ListarServicios;
 using SGRH.Application.UseCases.Servicios.ListarServiciosPorCategoria;
+using SGRH.Application.UseCases.Servicios.AsignarPrecioCategoria;
+using SGRH.Application.UseCases.Servicios.AsignarServicioTemporada;
 using SGRH.Application.UseCases.Tarifas.CrearTarifa;
 using SGRH.Application.UseCases.Tarifas.GetTarifa;
 using SGRH.Application.UseCases.Tarifas.ListarTarifas;
@@ -159,8 +161,12 @@ public static class ApplicationDependencyInjection
     private static IServiceCollection AddServicioUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<CrearServicioRequest>, CrearServicioValidator>();
+        services.AddScoped<IValidator<AsignarPrecioCategoriaRequest>, AsignarPrecioCategoriaValidator>();
+        services.AddScoped<IValidator<AsignarServicioTemporadaRequest>, AsignarServicioTemporadaValidator>();
 
         services.AddScoped<CrearServicioUseCase>();
+        services.AddScoped<AsignarPrecioCategoriaUseCase>();
+        services.AddScoped<AsignarServicioTemporadaUseCase>();
         services.AddScoped<GetServicioUseCase>();
         services.AddScoped<ListarServiciosUseCase>();
         services.AddScoped<ListarServiciosPorCategoriaUseCase>();

@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SGRH.Domain.Base;
-using SGRH.Domain.Enums;
+﻿using SGRH.Domain.Base;
 using SGRH.Domain.Common;
+using SGRH.Domain.Enums;
 using SGRH.Domain.Exceptions;
 
 namespace SGRH.Domain.Entities.Habitaciones;
@@ -23,11 +18,9 @@ public sealed class HabitacionHistorial : EntityBase
 
     public HabitacionHistorial(int habitacionId, EstadoHabitacion estado, string? motivo)
     {
-        Guard.AgainstOutOfRange(habitacionId, nameof(habitacionId), 0);
+        // habitacionId puede ser 0 cuando la Habitacion padre aún no fue guardada.
+        // EF Core asigna el FK automáticamente al hacer SaveChanges.
 
-        // Replicar el CHECK constraint de la BD:
-        // Mantenimiento y Limpieza REQUIEREN motivo.
-        // Disponible y Ocupada NO deben tener motivo.
         if (estado is EstadoHabitacion.Mantenimiento or EstadoHabitacion.Limpieza)
         {
             if (string.IsNullOrWhiteSpace(motivo))
@@ -46,8 +39,10 @@ public sealed class HabitacionHistorial : EntityBase
 
         HabitacionId = habitacionId;
         EstadoHabitacion = estado;
-        FechaInicio = DateTime.UtcNow;
         MotivoCambio = motivo;
+
+        // ← Hora local UTC-4, no UTC
+        FechaInicio = HoraLocal.Ahora;
         // FechaFin queda null → este registro es el vigente
     }
 
@@ -57,7 +52,8 @@ public sealed class HabitacionHistorial : EntityBase
             throw new BusinessRuleViolationException(
                 "Este registro de historial ya está cerrado.");
 
-        FechaFin = DateTime.UtcNow;
+        // ← Hora local UTC-4, no UTC
+        FechaFin = HoraLocal.Ahora;
     }
 
     protected override object GetKey() => HabitacionHistorialId;

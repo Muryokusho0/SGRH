@@ -18,7 +18,12 @@ public sealed class ServicioAdicionalRepositoryEF
     public async Task<ServicioAdicional?> GetByIdWithTemporadasAsync(
         int id, CancellationToken ct = default)
     {
+        // AsNoTracking para evitar que EF devuelva la entidad ya trackeada
+        // con _temporadaIds ya populados de una llamada anterior.
+        // Sin AsNoTracking, una segunda llamada en la misma request intentaría
+        // agregar los mismos TemporadaIds y HabilitarEnTemporada lanzaría ConflictException.
         var servicio = await Db.ServiciosAdicionales
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.ServicioAdicionalId == id, ct);
 
         if (servicio is null) return null;

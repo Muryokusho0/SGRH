@@ -1,16 +1,11 @@
-﻿using SGRH.Application.Common.Exceptions;
+﻿using SGRH.Application.Abstractions;
+using SGRH.Application.Common.Exceptions;
+using SGRH.Application.Mappers;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Abstractions.Services;
 using SGRH.Domain.Entities.Auditoria;
 using SGRH.Domain.Entities.Temporadas;
 using SGRH.Domain.Exceptions;
-using SGRH.Application.Mappers;
-using SGRH.Application.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SGRH.Application.UseCases.Temporadas.CrearTemporada;
 
@@ -40,42 +35,49 @@ public sealed class CrearTemporadaUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
-        // ── 1. Validar ────────────────────────────────────────────────────
+        // ── 1. Validar — fuera de transacción ─────────────────────────────
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
             throw new ApplicationValidationException(validation.Errors);
 
-        // ── 2. RF-09: No superposición de temporadas ───────────────────────
+        // ── 2. RF-09: No superposición — lectura fuera de transacción ─────
         if (await _temporadas.ExisteSolapamientoAsync(
                 request.FechaInicio, request.FechaFin, excludeId: null, ct))
             throw new ConflictException(
                 "El rango de fechas se superpone con una temporada existente.");
 
-        // ── 3. Crear ──────────────────────────────────────────────────────
-        var temporada = new Temporada(
-            request.NombreTemporada,
-            request.FechaInicio,
-            request.FechaFin);
+        // ── 3. Transacción ────────────────────────────────────────────────
+        await _unitOfWork.BeginTransactionAsync(ct);
+        try
+        {
+            var temporada = new Temporada(
+                request.NombreTemporada,
+                request.FechaInicio,
+                request.FechaFin);
 
-        await _temporadas.AddAsync(temporada, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+            await _temporadas.AddAsync(temporada, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
 
-        // ── 4. Auditoría ──────────────────────────────────────────────────
-        var evento = new AuditoriaEvento(
-            usuarioId: usuarioActualId,
-            rol: usuarioActualRol,
-            usernameSnapshot: usernameActual,
-            accion: "CREATE",
-            modulo: "Temporadas",
-            entidad: "Temporada",
-            entidadId: temporada.TemporadaId.ToString(),
-            requestId: request.AuditInfo.RequestId,
-            ipOrigen: request.AuditInfo.IpOrigen,
-            userAgent: request.AuditInfo.UserAgent,
-            descripcion: $"Temporada '{request.NombreTemporada}' creada ({request.FechaInicio:d} – {request.FechaFin:d}).");
+            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+                usuarioId: usuarioActualId,
+                rol: usuarioActualRol,
+                usernameSnapshot: usernameActual,
+                accion: "CREATE",
+                modulo: "Temporadas",
+                entidad: "Temporada",
+                entidadId: temporada.TemporadaId.ToString(),
+                requestId: request.AuditInfo.RequestId,
+                ipOrigen: request.AuditInfo.IpOrigen,
+                userAgent: request.AuditInfo.UserAgent,
+                descripcion: $"Temporada '{request.NombreTemporada}' creada ({request.FechaInicio:d} – {request.FechaFin:d})."), ct);
 
-        await _auditoria.RegistrarAsync(evento, ct);
-
-        return new CrearTemporadaResponse(temporada.ToDto());
+            await _unitOfWork.CommitAsync(ct);
+            return new CrearTemporadaResponse(temporada.ToDto());
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync(ct);
+            throw;
+        }
     }
 }

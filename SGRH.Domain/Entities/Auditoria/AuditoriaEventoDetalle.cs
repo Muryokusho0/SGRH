@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SGRH.Domain.Base;
+﻿using SGRH.Domain.Base;
 using SGRH.Domain.Common;
 
 namespace SGRH.Domain.Entities.Auditoria;
@@ -24,7 +19,6 @@ public sealed class AuditoriaEventoDetalle : EntityBase
         string? valorAnterior,
         string? valorNuevo)
     {
-        Guard.AgainstOutOfRange(auditoriaEventoId, nameof(auditoriaEventoId), 0L);
         Guard.AgainstNullOrWhiteSpace(campo, nameof(campo), 128);
 
         AuditoriaEventoId = auditoriaEventoId;
