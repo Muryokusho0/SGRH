@@ -7,10 +7,7 @@ using System.Text.Json;
 namespace SGRH.Api.Middleware;
 
 /// <summary>
-/// Captura todas las excepciones no manejadas del pipeline y las convierte
-/// en respuestas HTTP con formato JSON consistente.
-/// Las excepciones de negocio (4xx) se devuelven al cliente.
-/// Las excepciones inesperadas (5xx) se loguean y devuelven un mensaje genérico.
+/// Middleware global de excepciones que transforma errores en JSON consistente.
 /// </summary>
 public sealed class ExceptionHandlingMiddleware
 {
@@ -22,6 +19,7 @@ public sealed class ExceptionHandlingMiddleware
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    /// <summary>Inicializa el middleware con el siguiente delegado y logger.</summary>
     public ExceptionHandlingMiddleware(
         RequestDelegate next,
         ILogger<ExceptionHandlingMiddleware> logger)
@@ -30,6 +28,7 @@ public sealed class ExceptionHandlingMiddleware
         _logger = logger;
     }
 
+    /// <summary>Ejecuta el siguiente middleware y captura excepciones.</summary>
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -42,6 +41,7 @@ public sealed class ExceptionHandlingMiddleware
         }
     }
 
+    /// <summary>Convierte una excepción en respuesta HTTP con formato estándar.</summary>
     private async Task HandleAsync(HttpContext context, Exception ex)
     {
         var (status, title, errors) = ex switch
@@ -85,10 +85,11 @@ public sealed class ExceptionHandlingMiddleware
         await context.Response.WriteAsync(body);
     }
 
+    /// <summary>Devuelve una lista vacía de errores.</summary>
     private static IReadOnlyList<string> EmptyErrors() => [];
 }
 
-/// <summary>Forma del body de error devuelto al cliente.</summary>
+/// <summary>Modelo de error serializado en las respuestas del middleware.</summary>
 internal sealed record ErrorResponse(
     int Status,
     string Title,

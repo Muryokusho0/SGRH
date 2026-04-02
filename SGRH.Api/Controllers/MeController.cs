@@ -12,8 +12,7 @@ using SGRH.Domain.Exceptions;
 namespace SGRH.Api.Controllers;
 
 /// <summary>
-/// Perfil del usuario autenticado.
-/// Disponible para cualquier rol — cada usuario gestiona sus propios datos.
+/// Endpoints del perfil del usuario autenticado.
 /// </summary>
 [Authorize]
 [Route("api/me")]
@@ -26,6 +25,7 @@ public sealed class MeController : BaseApiController
     private readonly IUnitOfWork _uow;
     private readonly IAuditoriaService _auditoria;
 
+    /// <summary>Inicializa el controlador de perfil.</summary>
     public MeController(
         IUsuarioRepository usuarios,
         IClienteRepository clientes,
@@ -41,9 +41,9 @@ public sealed class MeController : BaseApiController
     }
 
     /// <summary>
-    /// Devuelve el perfil del usuario autenticado.
-    /// Si es CLIENTE, incluye también los datos del cliente (nombre, email, teléfono).
+    /// Devuelve el perfil del usuario autenticado y, si aplica, los datos del cliente.
     /// </summary>
+    /// <param name="ct">Token de cancelación.</param>
     [HttpGet]
     public async Task<IActionResult> GetPerfil(CancellationToken ct)
     {
@@ -63,10 +63,9 @@ public sealed class MeController : BaseApiController
         return Ok(new { usuario = usuario.ToDto() });
     }
 
-    /// <summary>
-    /// Modifica los datos del perfil del cliente autenticado.
-    /// Solo disponible para rol CLIENTE.
-    /// </summary>
+    /// <summary>Actualiza parcialmente el perfil del cliente autenticado.</summary>
+    /// <param name="body">Campos opcionales a modificar.</param>
+    /// <param name="ct">Token de cancelación.</param>
     [HttpPatch]
     [Authorize(Policy = "SoloCliente")]
     public async Task<IActionResult> ModificarPerfil(
@@ -141,11 +140,9 @@ public sealed class MeController : BaseApiController
         return Ok(new { cliente = clienteActualizado?.ToDto() });
     }
 
-    /// <summary>
-    /// Cambia la contraseña del usuario autenticado.
-    /// Disponible para todos los roles.
-    /// Requiere la contraseña actual para confirmar la identidad.
-    /// </summary>
+    /// <summary>Cambia la contraseña del usuario autenticado.</summary>
+    /// <param name="body">Credenciales actuales y nueva contraseña.</param>
+    /// <param name="ct">Token de cancelación.</param>
     [HttpPost("password")]
     public async Task<IActionResult> CambiarPassword(
         [FromBody] CambiarPasswordBody body, CancellationToken ct)
@@ -201,13 +198,14 @@ public sealed class MeController : BaseApiController
 
     // ── Bodies ────────────────────────────────────────────────────────────
 
-    /// <summary>PATCH — todos los campos opcionales.</summary>
+    /// <summary>Payload de actualización parcial del perfil.</summary>
     public sealed record ModificarPerfilBody(
         string? NombreCliente,
         string? ApellidoCliente,
         string? Email,
         string? Telefono);
 
+    /// <summary>Payload para cambiar la contraseña.</summary>
     public sealed record CambiarPasswordBody(
         string PasswordActual,
         string NuevoPassword,

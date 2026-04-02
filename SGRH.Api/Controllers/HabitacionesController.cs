@@ -10,6 +10,9 @@ using SGRH.Domain.Abstractions.Repositories;
 
 namespace SGRH.Api.Controllers;
 
+/// <summary>
+/// Endpoints para gestión y consulta de habitaciones.
+/// </summary>
 [Authorize]
 public sealed class HabitacionesController : BaseApiController
 {
@@ -21,6 +24,7 @@ public sealed class HabitacionesController : BaseApiController
     private readonly ListarHabitacionesDisponiblesUseCase _disponibles;
     private readonly IReservaRepository _reservas;
 
+    /// <summary>Inicializa el controlador de habitaciones.</summary>
     public HabitacionesController(
         CrearHabitacionUseCase crear,
         ListarHabitacionesUseCase listar,
@@ -39,9 +43,7 @@ public sealed class HabitacionesController : BaseApiController
         _reservas = reservas;
     }
 
-    /// <summary>
-    /// Lista todas las habitaciones con estado y historial. [AdminORecepcionista]
-    /// </summary>
+    /// <summary>Lista todas las habitaciones con filtros opcionales.</summary>
     [HttpGet]
     [Authorize(Policy = "AdminORecepcionista")]
     public async Task<IActionResult> Listar(
@@ -54,10 +56,7 @@ public sealed class HabitacionesController : BaseApiController
         return Ok(response);
     }
 
-    /// <summary>
-    /// Habitaciones disponibles en un rango de fechas con rangos ocupados.
-    /// Disponible para todos los usuarios autenticados. — RF-04
-    /// </summary>
+    /// <summary>Devuelve habitaciones disponibles y periodos ocupados.</summary>
     [HttpGet("disponibles")]
     public async Task<IActionResult> Disponibles(
         [FromQuery] DateTime entrada,
@@ -96,7 +95,7 @@ public sealed class HabitacionesController : BaseApiController
         return Ok(new { habitaciones = habitacionesConRangos });
     }
 
-    /// <summary>Obtiene una habitación por ID. [AdminORecepcionista]</summary>
+    /// <summary>Obtiene una habitación por Id. Requiere rol admin o recepcionista.</summary>
     [HttpGet("{id:int}")]
     [Authorize(Policy = "AdminORecepcionista")]
     public async Task<IActionResult> Get(int id, CancellationToken ct)
@@ -105,10 +104,7 @@ public sealed class HabitacionesController : BaseApiController
         return response is null ? NotFoundProblem($"Habitación {id} no encontrada.") : Ok(response);
     }
 
-    /// <summary>
-    /// Rangos de fechas en que una habitación estará ocupada.
-    /// Útil para que el cliente sepa qué días no puede reservar. [Autenticado]
-    /// </summary>
+    /// <summary>Devuelve rangos de ocupación de una habitación.</summary>
     [HttpGet("{id:int}/ocupacion")]
     public async Task<IActionResult> Ocupacion(int id, CancellationToken ct)
     {
@@ -125,7 +121,7 @@ public sealed class HabitacionesController : BaseApiController
         });
     }
 
-    /// <summary>Crea una nueva habitación. [SoloAdmin]</summary>
+    /// <summary>Crea una nueva habitación. Requiere rol admin.</summary>
     [HttpPost]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> Crear(
@@ -139,7 +135,7 @@ public sealed class HabitacionesController : BaseApiController
         return CreatedAtAction(nameof(Get), new { id = response.Habitacion.HabitacionId }, response);
     }
 
-    /// <summary>Bloquea una habitación por mantenimiento. [AdminORecepcionista] — RF-07</summary>
+    /// <summary>Bloquea una habitación por mantenimiento.</summary>
     [HttpPatch("{id:int}/bloquear")]
     [Authorize(Policy = "AdminORecepcionista")]
     public async Task<IActionResult> Bloquear(
@@ -151,10 +147,7 @@ public sealed class HabitacionesController : BaseApiController
         return NoContent();
     }
 
-    /// <summary>
-    /// Cambia el estado de una habitación. [AdminORecepcionista] — RF-06
-    /// Estados: Disponible, Ocupada, Mantenimiento (requiere motivo), Limpieza (requiere motivo).
-    /// </summary>
+    /// <summary>Cambia el estado de una habitación.</summary>
     [HttpPatch("{id:int}/estado")]
     [Authorize(Policy = "AdminORecepcionista")]
     public async Task<IActionResult> CambiarEstado(
@@ -169,8 +162,13 @@ public sealed class HabitacionesController : BaseApiController
 
     // ── Bodies ────────────────────────────────────────────────────────────
 
+    /// <summary>Payload para crear habitación.</summary>
     public sealed record CrearHabitacionBody(
         int NumeroPiso, int NumeroHabitacion, int CategoriaHabitacionId);
+
+    /// <summary>Payload para bloquear habitación.</summary>
     public sealed record BloquearBody(string Motivo);
+
+    /// <summary>Payload para cambio de estado de habitación.</summary>
     public sealed record CambiarEstadoBody(string NuevoEstado, string? Motivo);
 }

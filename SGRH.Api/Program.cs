@@ -8,8 +8,15 @@ using SGRH.Api.Converters;
 
 namespace SGRH.Api;
 
+/// <summary>
+/// Punto de entrada de la API. Configura servicios, middleware y arranca el host.
+/// </summary>
 public class Program
 {
+    /// <summary>
+    /// Inicializa la aplicación web, registra dependencias y ejecuta el pipeline.
+    /// </summary>
+    /// <param name="args">Argumentos de línea de comandos.</param>
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);

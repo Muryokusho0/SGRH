@@ -9,6 +9,6 @@ namespace SGRH.Application.Dtos.Temporadas;
 public sealed record TemporadaDto(
     int TemporadaId,
     string NombreTemporada,
-    DateTime FechaInicio,
-    DateTime FechaFin);
+    DateTime? FechaInicio,
+    DateTime? FechaFin);
 

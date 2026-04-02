@@ -7,12 +7,14 @@ using SGRH.Persistence.Context;
 namespace SGRH.Api.Seed;
 
 /// <summary>
-/// Crea el primer usuario ADMIN al arrancar la app si no existe ninguno.
-/// Resuelve el problema huevo-gallina: necesitas un admin para crear admins,
-/// pero no tienes ninguno la primera vez.
+/// Inicializa el usuario administrador por defecto cuando la base de datos está vacía.
 /// </summary>
 public static class DbSeeder
 {
+    /// <summary>
+    /// Ejecuta el seed inicial de datos (admin) si no existe un usuario ADMIN activo.
+    /// </summary>
+    /// <param name="app">Aplicación en ejecución.</param>
     public static async Task SeedAsync(WebApplication app)
     {
         using var scope = app.Services.CreateScope();

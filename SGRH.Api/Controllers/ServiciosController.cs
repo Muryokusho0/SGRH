@@ -16,6 +16,9 @@ using SGRH.Application.UseCases.Servicios.ListarServiciosPorCategoria;
 
 namespace SGRH.Api.Controllers;
 
+/// <summary>
+/// Endpoints para servicios adicionales y sus precios por categoría/temporada.
+/// </summary>
 [Authorize]
 public sealed class ServiciosController : BaseApiController
 {
@@ -29,6 +32,7 @@ public sealed class ServiciosController : BaseApiController
     private readonly IUnitOfWork _uow;
     private readonly IAuditoriaService _auditoria;
 
+    /// <summary>Inicializa el controlador de servicios.</summary>
     public ServiciosController(
         CrearServicioUseCase crear,
         GetServicioUseCase get,
@@ -51,7 +55,7 @@ public sealed class ServiciosController : BaseApiController
         _auditoria = auditoria;
     }
 
-    /// <summary>Lista servicios. Disponible para todos los usuarios autenticados.</summary>
+    /// <summary>Lista servicios con filtro opcional por nombre.</summary>
     [HttpGet]
     public async Task<IActionResult> Listar(
         [FromQuery] string? nombre, CancellationToken ct)
@@ -60,7 +64,7 @@ public sealed class ServiciosController : BaseApiController
         return Ok(response);
     }
 
-    /// <summary>Lista servicios disponibles para una categoría con su precio aplicable.</summary>
+    /// <summary>Lista servicios disponibles para una categoría con su precio vigente.</summary>
     [HttpGet("por-categoria/{categoriaId:int}")]
     public async Task<IActionResult> PorCategoria(int categoriaId, CancellationToken ct)
     {
@@ -68,7 +72,7 @@ public sealed class ServiciosController : BaseApiController
         return Ok(response);
     }
 
-    /// <summary>Obtiene un servicio por ID.</summary>
+    /// <summary>Obtiene un servicio por Id.</summary>
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id, CancellationToken ct)
     {
@@ -76,7 +80,7 @@ public sealed class ServiciosController : BaseApiController
         return response is null ? NotFoundProblem($"Servicio {id} no encontrado.") : Ok(response);
     }
 
-    /// <summary>Crea un nuevo servicio adicional. [SoloAdmin]</summary>
+    /// <summary>Crea un servicio adicional. Requiere rol admin.</summary>
     [HttpPost]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> Crear(
@@ -88,9 +92,7 @@ public sealed class ServiciosController : BaseApiController
         return CreatedAtAction(nameof(Get), new { id = response.Servicio.ServicioAdicionalId }, response);
     }
 
-    /// <summary>
-    /// Actualiza nombre y/o tipo de un servicio. Campos omitidos conservan valor actual. [SoloAdmin]
-    /// </summary>
+    /// <summary>Actualiza nombre y/o tipo del servicio. Requiere rol admin.</summary>
     [HttpPatch("{id:int}")]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> ModificarParcial(
@@ -140,7 +142,7 @@ public sealed class ServiciosController : BaseApiController
         return Ok(new { servicio = servicio.ToDto() });
     }
 
-    /// <summary>Asigna o actualiza el precio de un servicio para una categoría. [SoloAdmin]</summary>
+    /// <summary>Asigna o actualiza precio de servicio por categoría. Requiere rol admin.</summary>
     [HttpPost("precio-categoria")]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> AsignarPrecioCategoria(
@@ -153,7 +155,7 @@ public sealed class ServiciosController : BaseApiController
         return Ok(response);
     }
 
-    /// <summary>Asigna un servicio a una temporada. [SoloAdmin]</summary>
+    /// <summary>Asigna un servicio a una temporada. Requiere rol admin.</summary>
     [HttpPost("temporada")]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> AsignarTemporada(
@@ -168,17 +170,21 @@ public sealed class ServiciosController : BaseApiController
 
     // ── Bodies ────────────────────────────────────────────────────────────
 
+    /// <summary>Payload para crear un servicio.</summary>
     public sealed record CrearServicioBody(string NombreServicio, string TipoServicio);
+
+    /// <summary>Payload para actualizar parcialmente un servicio.</summary>
     public sealed record PatchServicioBody(string? NombreServicio, string? TipoServicio);
+
+    /// <summary>Payload para asignar precio por categoría.</summary>
     public sealed record AsignarPrecioCategoriaBody(
         int ServicioAdicionalId, int CategoriaHabitacionId, decimal Precio);
+
+    /// <summary>Payload para asignar servicio a temporada.</summary>
     public sealed record AsignarServicioTemporadaBody(
         int ServicioAdicionalId, int TemporadaId);
 
-    /// <summary>
-    /// Marca el servicio como disponible en TODAS las temporadas.
-    /// Ya no es necesario asignarlo temporada por temporada. [SoloAdmin]
-    /// </summary>
+    /// <summary>Habilita el servicio para todas las temporadas. Requiere rol admin.</summary>
     [HttpPost("{id:int}/todas-temporadas")]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> HabilitarTodasTemporadas(int id, CancellationToken ct)
@@ -213,10 +219,7 @@ public sealed class ServiciosController : BaseApiController
         return Ok(new { mensaje = "Servicio habilitado para todas las temporadas.", servicio = servicio.ToDto() });
     }
 
-    /// <summary>
-    /// Revierte el servicio a modo por temporada.
-    /// Deberás asignarlo manualmente a cada temporada. [SoloAdmin]
-    /// </summary>
+    /// <summary>Revierte el servicio a modo por temporada. Requiere rol admin.</summary>
     [HttpDelete("{id:int}/todas-temporadas")]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> DeshabilitarTodasTemporadas(int id, CancellationToken ct)
@@ -250,6 +253,4 @@ public sealed class ServiciosController : BaseApiController
 
         return Ok(new { mensaje = "Servicio revertido a modo por temporada.", servicio = servicio.ToDto() });
     }
-
-
 }

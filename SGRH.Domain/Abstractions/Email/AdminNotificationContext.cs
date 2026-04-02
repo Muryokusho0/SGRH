@@ -6,21 +6,38 @@ using System.Threading.Tasks;
 
 namespace SGRH.Domain.Abstractions.Email;
 
+/// <summary>
+/// Contiene información contextual adicional sobre el entorno en que ocurrió
+/// un error o advertencia, utilizada para enriquecer las notificaciones enviadas al administrador.
+/// </summary>
 public sealed class AdminNotificationContext
 {
-    // ID del request HTTP si aplica. Para correlacionar con los logs.
+    /// <summary>
+    /// Identificador único del request HTTP en que ocurrió el evento.
+    /// Permite correlacionar la notificación con los logs del sistema.
+    /// </summary>
     public Guid? RequestId { get; init; }
 
-    // Endpoint o acción que estaba ejecutándose cuando ocurrió el error.
+    /// <summary>
+    /// Endpoint o acción que se estaba ejecutando al momento del error
+    /// (por ejemplo: "POST /api/reservas/confirmar").
+    /// </summary>
     public string? Endpoint { get; init; }
 
-    // Usuario autenticado en el momento del error (si había sesión activa).
+    /// <summary>
+    /// Nombre del usuario autenticado al momento del evento, si había sesión activa.
+    /// </summary>
     public string? Username { get; init; }
 
-    // IP de origen de la request.
+    /// <summary>
+    /// Dirección IP de origen del request que originó el evento.
+    /// </summary>
     public string? IpOrigen { get; init; }
 
-    // Datos adicionales libres: parámetros relevantes, IDs de entidades, etc.
-    // Ejemplo: new Dictionary { ["ReservaId"] = "42", ["Accion"] = "Confirmar" }
+    /// <summary>
+    /// Datos adicionales de contexto en formato clave-valor.
+    /// Puede incluir parámetros relevantes, ids de entidades, etc.
+    /// Ejemplo: <c>new Dictionary { ["ReservaId"] = "42", ["Accion"] = "Confirmar" }</c>
+    /// </summary>
     public IDictionary<string, string>? Extra { get; init; }
 }

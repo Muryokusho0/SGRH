@@ -13,6 +13,9 @@ using SGRH.Application.UseCases.Temporadas.ListarTemporadas;
 
 namespace SGRH.Api.Controllers;
 
+/// <summary>
+/// Endpoints para administración y consulta de temporadas.
+/// </summary>
 [Authorize]
 public sealed class TemporadasController : BaseApiController
 {
@@ -23,6 +26,7 @@ public sealed class TemporadasController : BaseApiController
     private readonly IUnitOfWork _uow;
     private readonly IAuditoriaService _auditoria;
 
+    /// <summary>Inicializa el controlador de temporadas.</summary>
     public TemporadasController(
         CrearTemporadaUseCase crear,
         GetTemporadaUseCase get,
@@ -39,10 +43,7 @@ public sealed class TemporadasController : BaseApiController
         _auditoria = auditoria;
     }
 
-    /// <summary>
-    /// Lista temporadas. Todos los usuarios autenticados pueden verlas
-    /// — el cliente necesita saber qué temporadas existen para entender precios.
-    /// </summary>
+    /// <summary>Lista temporadas por filtros opcionales.</summary>
     [HttpGet]
     public async Task<IActionResult> Listar(
         [FromQuery] string? nombre,
@@ -54,7 +55,7 @@ public sealed class TemporadasController : BaseApiController
         return Ok(response);
     }
 
-    /// <summary>Obtiene una temporada por ID. Todos los autenticados.</summary>
+    /// <summary>Obtiene una temporada por Id.</summary>
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id, CancellationToken ct)
     {
@@ -62,10 +63,7 @@ public sealed class TemporadasController : BaseApiController
         return response is null ? NotFoundProblem($"Temporada {id} no encontrada.") : Ok(response);
     }
 
-    /// <summary>
-    /// Crea una temporada específica (con año). [SoloAdmin]
-    /// Para temporadas que aplican todos los años (ej: Navidad), usa POST /recurrente.
-    /// </summary>
+    /// <summary>Crea una temporada específica por fecha. Requiere rol admin.</summary>
     [HttpPost]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> Crear(
@@ -78,11 +76,7 @@ public sealed class TemporadasController : BaseApiController
         return CreatedAtAction(nameof(Get), new { id = response.Temporada.TemporadaId }, response);
     }
 
-    /// <summary>
-    /// Crea una temporada recurrente que aplica cada año por rango de mes/día. [SoloAdmin]
-    /// Ejemplo: Navidad = del 15 de diciembre (mes=12, dia=15) al 14 de enero (mes=1, dia=15).
-    /// Solo un registro para todos los años — no hace falta crear uno por año.
-    /// </summary>
+    /// <summary>Crea una temporada recurrente (aplica cada año). Requiere rol admin.</summary>
     [HttpPost("recurrente")]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> CrearRecurrente(
@@ -131,11 +125,7 @@ public sealed class TemporadasController : BaseApiController
             });
     }
 
-    /// <summary>
-    /// Actualiza parcialmente una temporada. [SoloAdmin]
-    /// Para temporadas recurrentes usa los campos mes/día.
-    /// Para temporadas específicas usa fechaInicio/fechaFin.
-    /// </summary>
+    /// <summary>Actualiza parcialmente una temporada. Requiere rol admin.</summary>
     [HttpPatch("{id:int}")]
     [Authorize(Policy = "SoloAdmin")]
     public async Task<IActionResult> ModificarParcial(
@@ -191,21 +181,20 @@ public sealed class TemporadasController : BaseApiController
 
     // ── Bodies ────────────────────────────────────────────────────────────
 
+    /// <summary>Payload para crear temporada específica por fechas.</summary>
     public sealed record CrearTemporadaBody(
         string NombreTemporada, DateTime FechaInicio, DateTime FechaFin);
 
-    /// <summary>
-    /// Para temporadas que se repiten cada año.
-    /// Ejemplo Navidad: MesInicio=12, DiaInicio=15, MesFin=1, DiaFin=15
-    /// </summary>
+    /// <summary>Payload para crear temporadas recurrentes por mes/día.</summary>
     public sealed record CrearTemporadaRecurrenteBody(
         string NombreTemporada,
         int MesInicio, int DiaInicio,
         int MesFin, int DiaFin);
 
+    /// <summary>Payload para patch de temporada (específica o recurrente).</summary>
     public sealed record PatchTemporadaBody(
         string? NombreTemporada,
-        DateTime? FechaInicio, DateTime? FechaFin,   // Para temporadas específicas
-        int? MesInicio, int? DiaInicio,  // Para temporadas recurrentes
+        DateTime? FechaInicio, DateTime? FechaFin,
+        int? MesInicio, int? DiaInicio,
         int? MesFin, int? DiaFin);
 }

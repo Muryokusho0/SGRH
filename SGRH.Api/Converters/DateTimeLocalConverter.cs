@@ -4,15 +4,14 @@ using System.Text.Json.Serialization;
 namespace SGRH.Api.Converters;
 
 /// <summary>
-/// Serializa DateTime como string con offset -04:00 (UTC-4, República Dominicana).
-/// Evita que Swagger y otros clientes JSON interpreten las fechas como UTC
-/// y las muestren con 4 horas de diferencia.
+/// Convierte <see cref="DateTime"/> a string con offset local (UTC-4) y viceversa.
 /// </summary>
 public sealed class DateTimeLocalConverter : JsonConverter<DateTime>
 {
     private static readonly TimeZoneInfo _zona =
         TimeZoneInfo.FindSystemTimeZoneById("SA Western Standard Time");
 
+    /// <summary>Lee un DateTime desde JSON.</summary>
     public override DateTime Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
@@ -22,6 +21,7 @@ public sealed class DateTimeLocalConverter : JsonConverter<DateTime>
         return DateTime.Parse(reader.GetString()!);
     }
 
+    /// <summary>Escribe un DateTime en JSON con offset local.</summary>
     public override void Write(
         Utf8JsonWriter writer,
         DateTime value,

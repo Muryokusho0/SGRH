@@ -49,8 +49,14 @@ using SGRH.Application.UseCases.Usuarios.ListarUsuarios;
 
 namespace SGRH.Application.DependencyInjection;
 
+/// <summary>
+/// Registro centralizado de casos de uso y validadores de la capa Application.
+/// </summary>
 public static class ApplicationDependencyInjection
 {
+    /// <summary>Agrega todos los casos de uso de la aplicación al contenedor DI.</summary>
+    /// <param name="services">Colección de servicios.</param>
+    /// <returns>La misma colección para encadenamiento.</returns>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services
@@ -70,6 +76,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Auth ──────────────────────────────────────────────────────────────
+    /// <summary>Registra validadores y casos de uso de autenticación.</summary>
     private static IServiceCollection AddAuthUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<LoginRequest>, LoginValidator>();
@@ -81,6 +88,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Usuarios ──────────────────────────────────────────────────────────
+    /// <summary>Registra validadores y casos de uso de usuarios.</summary>
     private static IServiceCollection AddUsuarioUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<CrearUsuarioRequest>, CrearUsuarioValidator>();
@@ -93,6 +101,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Clientes ──────────────────────────────────────────────────────────
+    /// <summary>Registra validadores y casos de uso de clientes.</summary>
     private static IServiceCollection AddClienteUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<ModificarClienteRequest>, ModificarClienteValidator>();
@@ -104,6 +113,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Categorías ────────────────────────────────────────────────────────
+    /// <summary>Registra validadores y casos de uso de categorías.</summary>
     private static IServiceCollection AddCategoriaUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<CrearCategoriaRequest>, CrearCategoriaValidator>();
@@ -117,6 +127,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Habitaciones ──────────────────────────────────────────────────────
+    /// <summary>Registra validadores y casos de uso de habitaciones.</summary>
     private static IServiceCollection AddHabitacionUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<CrearHabitacionRequest>, CrearHabitacionValidator>();
@@ -135,6 +146,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Temporadas ────────────────────────────────────────────────────────
+    /// <summary>Registra validadores y casos de uso de temporadas.</summary>
     private static IServiceCollection AddTemporadaUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<CrearTemporadaRequest>, CrearTemporadaValidator>();
@@ -147,6 +159,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Tarifas ───────────────────────────────────────────────────────────
+    /// <summary>Registra validadores y casos de uso de tarifas.</summary>
     private static IServiceCollection AddTarifaUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<CrearTarifaRequest>, CrearTarifaValidator>();
@@ -158,6 +171,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Servicios ─────────────────────────────────────────────────────────
+    /// <summary>Registra validadores y casos de uso de servicios.</summary>
     private static IServiceCollection AddServicioUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<CrearServicioRequest>, CrearServicioValidator>();
@@ -174,6 +188,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Reservas ──────────────────────────────────────────────────────────
+    /// <summary>Registra validadores y casos de uso de reservas.</summary>
     private static IServiceCollection AddReservaUseCases(this IServiceCollection services)
     {
         services.AddScoped<IValidator<CrearReservaRequest>, CrearReservaValidator>();
@@ -196,6 +211,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Auditoría ─────────────────────────────────────────────────────────
+    /// <summary>Registra casos de uso de auditoría.</summary>
     private static IServiceCollection AddAuditoriaUseCases(this IServiceCollection services)
     {
         services.AddScoped<ListarAuditoriaUseCase>();
@@ -203,6 +219,7 @@ public static class ApplicationDependencyInjection
     }
 
     // ── Reportes ──────────────────────────────────────────────────────────
+    /// <summary>Registra casos de uso de reportes.</summary>
     private static IServiceCollection AddReporteUseCases(this IServiceCollection services)
     {
         services.AddScoped<ListarReportesUseCase>();
