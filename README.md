@@ -1,6 +1,8 @@
 # Sistema de Gestión de Reservas de Hoteles — SGRH
 
 > Solución empresarial para la administración integral de reservas hoteleras, construida sobre **.NET 8** con arquitectura en capas (monolito modular), API REST centralizada y clientes desacoplados Web y Desktop.
+>
+> More information: https://www.mintlify.com/Muryokusho0/SGRH
 
 ---
 
