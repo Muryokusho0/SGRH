@@ -30,8 +30,15 @@ public sealed class DetalleReservaConfiguration : IEntityTypeConfiguration<Detal
             .WithMany(r => r.Habitaciones)
             .HasForeignKey(d => d.ReservaId)
             .IsRequired()
-            .OnDelete(DeleteBehavior.Restrict);
+            // ClientCascade: EF Core elimina automáticamente el DetalleReserva huérfano
+            // cuando se remueve de Reserva.Habitaciones en memoria, en lugar de intentar
+            // poner ReservaId = NULL (lo que fallaría porque el FK es NOT NULL).
+            // En la base de datos el FK sigue siendo RESTRICT — los triggers de SQL Server
+            // controlan las reglas de negocio (no se puede modificar reserva confirmada).
+            .OnDelete(DeleteBehavior.ClientCascade);
 
+        // La relación Habitacion → DetalleReserva sigue siendo Restrict:
+        // no queremos eliminar el DetalleReserva al borrar una Habitacion.
         b.HasOne<Habitacion>()
             .WithMany()
             .HasForeignKey(d => d.HabitacionId)

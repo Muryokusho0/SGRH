@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Servicios;
 using SGRH.Persistence.Context;
@@ -15,7 +16,7 @@ public sealed class ServicioCategoriaPrecioRepositoryEF
     : Repository<ServicioCategoriaPrecio, (int ServicioId, int CategoriaId)>,
       IServicioCategoriaPrecioRepository
 {
-    public ServicioCategoriaPrecioRepositoryEF(SGRHDbContext db) : base(db) { }
+    public ServicioCategoriaPrecioRepositoryEF(SGRHDbContext db, ILogger<ServicioCategoriaPrecioRepositoryEF> logger) : base(db, logger) { }
 
     public override Task<ServicioCategoriaPrecio?> GetByIdAsync(
         (int ServicioId, int CategoriaId) id,

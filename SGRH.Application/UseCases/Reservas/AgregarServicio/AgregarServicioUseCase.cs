@@ -37,16 +37,13 @@ public sealed class AgregarServicioUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
-        // ── 1. Validar — fuera de transacción ─────────────────────────────
         var validacion = await _validator.ValidateAsync(request, ct);
         if (!validacion.IsValid)
             throw new ApplicationValidationException(validacion.Errors);
 
-        // ── 2. Buscar — lectura fuera de transacción ──────────────────────
         var reserva = await _reservas.GetByIdWithDetallesAsync(request.ReservaId, ct)
             ?? throw new NotFoundException("Reserva", request.ReservaId.ToString());
 
-        // ── 3. Transacción ────────────────────────────────────────────────
         await _uow.BeginTransactionAsync(ct);
         try
         {
@@ -54,7 +51,7 @@ public sealed class AgregarServicioUseCase
 
             await _uow.SaveChangesAsync(ct);
 
-            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+            var evento = new AuditoriaEvento(
                 usuarioId: usuarioActualId,
                 rol: usuarioActualRol,
                 usernameSnapshot: usernameActual,
@@ -65,8 +62,20 @@ public sealed class AgregarServicioUseCase
                 requestId: request.AuditInfo.RequestId,
                 ipOrigen: request.AuditInfo.IpOrigen,
                 userAgent: request.AuditInfo.UserAgent,
-                descripcion: $"Servicio {request.ServicioAdicionalId} (x{request.Cantidad}) agregado a reserva {reserva.ReservaId}."), ct);
+                descripcion: $"Servicio {request.ServicioAdicionalId} (x{request.Cantidad}) agregado a reserva {reserva.ReservaId}.");
 
+            // ── Detalles del cambio ───────────────────────────────────────
+            evento.AgregarDetalle(
+                campo: "ServicioAdicionalId",
+                valorAnterior: null,
+                valorNuevo: request.ServicioAdicionalId.ToString());
+
+            evento.AgregarDetalle(
+                campo: "Cantidad",
+                valorAnterior: null,
+                valorNuevo: request.Cantidad.ToString());
+
+            await _auditoria.RegistrarAsync(evento, ct);
             await _uow.CommitAsync(ct);
         }
         catch

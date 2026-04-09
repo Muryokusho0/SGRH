@@ -1,0 +1,453 @@
+﻿@page "/reservas/{ReservaIdParam:int}"
+@attribute [Authorize]
+@inject IReservaService ReservaService
+@inject IServicioService ServicioService
+@inject NavigationManager Nav
+
+<PageTitle>Detalle de Reserva — SGRH</PageTitle>
+
+@if (_cargando)
+{
+    <div class="loading-center">
+        <span class="spinner-lg"></span>
+        <p>Cargando reserva...</p>
+    </div>
+}
+else if (_reserva is null)
+{
+    <div class="empty-state" style="margin-top: 60px;">
+        <span class="empty-icon">❌</span>
+        <p class="empty-title">Reserva no encontrada</p>
+        <button class="btn-primary"
+                @onclick='() => Nav.NavigateTo("/reservas")'>
+            Volver a mis reservas
+        </button>
+    </div>
+}
+else
+{
+    <div class="page-header">
+        <div>
+            <button class="btn-back"
+                    @onclick='() => Nav.NavigateTo("/reservas")'>
+                ← Mis Reservas
+            </button>
+            <h1 class="page-title">Detalle de Reserva</h1>
+        </div>
+        <span class="badge badge--@BadgeClass(_reserva.Estado) badge--lg">
+            @_reserva.Estado
+        </span>
+    </div>
+
+    <AlertaError Mensaje="@(_esError? _mensaje : null)" />
+    <AlertaError Mensaje="@(!_esError ? _mensaje : null)" EsError="false" />
+
+    @* ── Fechas ───────────────────────────────────────────────────────────── *@
+    <div class="detail-card">
+        <h2 class="detail-card-title">📅 Fechas de estadía</h2>
+        <div class="dates-display">
+            <div class="date-block">
+                <p class="date-block-label">Entrada</p>
+                <p class="date-block-value">
+                    @_reserva.FechaEntrada.ToString("dddd, dd MMMM yyyy",
+                        new System.Globalization.CultureInfo("es-DO"))
+                </p>
+            </div>
+            <div class="date-block-separator">
+                <p class="date-nights">
+                    @_reserva.Noches noche@(_reserva.Noches == 1 ? "" : "s")
+                </p>
+                <span>→</span>
+            </div>
+            <div class="date-block">
+                <p class="date-block-label">Salida</p>
+                <p class="date-block-value">
+                    @_reserva.FechaSalida.ToString("dddd, dd MMMM yyyy",
+                        new System.Globalization.CultureInfo("es-DO"))
+                </p>
+            </div>
+        </div>
+
+        @* Cambio de fechas con EditForm + DataAnnotationsValidator *@
+        @if (_reserva.EsModificable)
+        {
+            <div class="cambio-fechas">
+                <h3 class="subsection-title">Cambiar fechas</h3>
+
+                @*
+                    CambiarFechasViewModel implementa IValidatableObject:
+                    - Valida que la entrada sea > hoy
+                    - Valida que la salida sea > entrada
+                    OnValidSubmit solo ejecuta si ambas reglas pasan.
+                *@
+                <EditForm Model="_fechasModel"
+                          OnValidSubmit="CambiarFechas"
+                          FormName="cambio-fechas">
+                    <DataAnnotationsValidator />
+
+                    <div class="date-inputs">
+                        <div class="form-group">
+                            <label class="form-label">Nueva entrada</label>
+                            <InputDate class="form-input form-input--date"
+                                       @bind-Value="_fechasModel.NuevaEntrada"
+                                       min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
+                            <ValidationMessage For="() => _fechasModel.NuevaEntrada"
+                                               class="field-error-bubble" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Nueva salida</label>
+                            <InputDate class="form-input form-input--date"
+                                       @bind-Value="_fechasModel.NuevaSalida" />
+                            <ValidationMessage For="() => _fechasModel.NuevaSalida"
+                                               class="field-error-bubble" />
+                        </div>
+                        <SpinnerButton Cargando="@_procesando"
+                                       TextoNormal="Actualizar fechas"
+                                       TextoCargando="Actualizando..."
+                                       FullWidth="false" />
+                    </div>
+                </EditForm>
+            </div>
+        }
+    </div>
+
+    @* ── Habitaciones ─────────────────────────────────────────────────────── *@
+    <div class="detail-card">
+        <h2 class="detail-card-title">🛏️ Habitaciones</h2>
+
+        @if (!_reserva.Habitaciones.Any())
+        {
+            <p class="empty-inline">No hay habitaciones en esta reserva.</p>
+        }
+        else
+        {
+            <div class="items-list">
+                @foreach (var hab in _reserva.Habitaciones)
+                {
+                    var habLocal = hab;
+                    <div class="item-row">
+                        <div class="item-info">
+                            <span class="item-title">
+                                Hab. @habLocal.NumeroHabitacion
+                            </span>
+                            <span class="item-subtitle">@habLocal.Categoria</span>
+                        </div>
+                        <div class="item-right">
+                            <span class="item-price">
+                                RD$ @habLocal.TarifaAplicada.ToString("N2") / noche
+                            </span>
+                            @if (_reserva.EsModificable)
+                            {
+                                <button class="btn-icon btn-icon--danger"
+                                        title="Quitar habitación"
+                                        @onclick="() => QuitarHabitacion(habLocal)"
+                                        disabled="@_procesando">
+                                    🗑️
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (_reserva.EsModificable)
+        {
+            <button class="btn-link mt-2"
+                    @onclick="IrABuscarHabitacion">
+                ➕ Agregar habitación
+            </button>
+        }
+    </div>
+
+    @* ── Servicios ────────────────────────────────────────────────────────── *@
+    <div class="detail-card">
+        <h2 class="detail-card-title">🛎️ Servicios adicionales</h2>
+
+        @if (!_reserva.Servicios.Any())
+        {
+            <p class="empty-inline">
+                No hay servicios adicionales en esta reserva.
+            </p>
+        }
+        else
+        {
+            <div class="items-list">
+                @foreach (var svc in _reserva.Servicios)
+                {
+                    var svcLocal = svc;
+                    <div class="item-row">
+                        <div class="item-info">
+                            <span class="item-title">@svcLocal.Nombre</span>
+                            <span class="item-subtitle">
+                                @svcLocal.Tipo · x@svcLocal.Cantidad
+                            </span>
+                        </div>
+                        <div class="item-right">
+                            <span class="item-price">
+                                RD$ @svcLocal.Subtotal.ToString("N2")
+                            </span>
+                            @if (_reserva.EsModificable)
+                            {
+                                <button class="btn-icon btn-icon--danger"
+                                        title="Quitar servicio"
+                                        @onclick="() => QuitarServicio(svcLocal)"
+                                        disabled="@_procesando">
+                                    🗑️
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (_reserva.EsModificable && _reserva.Habitaciones.Any())
+        {
+            <div class="add-service-section">
+                <h3 class="subsection-title">Agregar servicio</h3>
+                @if (!_serviciosDisponibles.Any())
+                {
+                    <p class="empty-inline">
+                        No hay servicios disponibles para estas fechas.
+                    </p>
+                }
+                else
+                {
+                    <div class="add-service-row">
+                        <select class="form-input form-select"
+                                @onchange="OnServicioSeleccionadoChange">
+                            <option value="0">— Selecciona un servicio —</option>
+                            @foreach (var svc in _serviciosDisponibles)
+                            {
+                                var svcOpt = svc;
+                                <option value="@svcOpt.ServicioAdicionalId">
+                                    @svcOpt.Nombre (@svcOpt.Tipo)
+                                    @(svcOpt.PrecioUnitario > 0
+                                        ? $" — RD$ {svcOpt.PrecioUnitario:N2}"
+                                        : "")
+                                </option>
+                            }
+                        </select>
+                        <div class="quantity-control">
+                            <button class="qty-btn"
+                                    @onclick="() => { if (_cantidad > 1) _cantidad--; }"
+                                    disabled="@(_cantidad <= 1)">
+                                −
+                            </button>
+                            <span class="qty-value">@_cantidad</span>
+                            <button class="qty-btn"
+                                    @onclick="() => _cantidad++">
+                                +
+                            </button>
+                        </div>
+                        <button class="btn-secondary"
+                                @onclick="AgregarServicio"
+                                disabled="@(_servicioSeleccionadoId == 0
+                                                                                                        || _procesando)">
+                            Agregar
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── Total ────────────────────────────────────────────────────────────── *@
+    <div class="detail-card detail-card--total">
+        <h2 class="detail-card-title">💰 Total</h2>
+        <p class="total-amount">RD$ @_reserva.CostoTotal.ToString("N2")</p>
+    </div>
+
+    @* ── Acciones ─────────────────────────────────────────────────────────── *@
+    @if (_reserva.EsModificable)
+    {
+        <div class="actions-bar">
+            <button class="btn-primary"
+                    @onclick="Confirmar"
+                    disabled="@(!_reserva.Habitaciones.Any() || _procesando)">
+                ✅ Confirmar reserva
+            </button>
+            <button class="btn-danger"
+                    @onclick="() => _mostrarModalCancelacion = true"
+                    disabled="@_procesando">
+                ❌ Cancelar reserva
+            </button>
+        </div>
+        @if (!_reserva.Habitaciones.Any())
+        {
+            <p class="form-hint" style="margin-top: 8px;">
+                Agrega al menos una habitación antes de confirmar.
+            </p>
+        }
+    }
+
+    @* ── Modal cancelación ────────────────────────────────────────────────── *@
+    @if (_mostrarModalCancelacion)
+    {
+        <div class="modal-backdrop">
+            <div class="modal">
+                <h3 class="modal-title">¿Cancelar reserva?</h3>
+                <p class="modal-body">
+                    Esta acción no se puede deshacer. La reserva quedará
+                    cancelada y no podrá reactivarse.
+                </p>
+                <div class="modal-actions">
+                    <button class="btn-secondary"
+                            @onclick="() => _mostrarModalCancelacion = false">
+                        Volver
+                    </button>
+                    <button class="btn-danger"
+                            @onclick="Cancelar"
+                            disabled="@_procesando">
+                        Sí, cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public int ReservaIdParam { get; set; }
+
+    private DetalleReservaViewModel? _reserva;
+    private bool _cargando = true;
+    private bool _procesando;
+    private bool _esError;
+    private string? _mensaje;
+    private bool _mostrarModalCancelacion;
+
+    // Model con DataAnnotations + IValidatableObject para cambio de fechas
+    private readonly CambiarFechasViewModel _fechasModel = new();
+
+    private List<ServicioViewModel> _serviciosDisponibles = [];
+    private int _servicioSeleccionadoId;
+    private int _cantidad = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarReserva();
+        try
+        {
+            _serviciosDisponibles = await ServicioService.ListarAsync(
+                _reserva?.FechaEntrada);
+        }
+        catch { }
+    }
+
+    private async Task CargarReserva()
+    {
+        _cargando = true;
+        try
+        {
+            _reserva = await ReservaService.ObtenerDetalleAsync(ReservaIdParam);
+            if (_reserva is not null)
+            {
+                // Pre-cargar el model de fechas con las actuales
+                _fechasModel.NuevaEntrada = _reserva.FechaEntrada;
+                _fechasModel.NuevaSalida = _reserva.FechaSalida;
+            }
+        }
+        catch (Exception ex) { MostrarError(ex.Message); }
+        finally { _cargando = false; }
+    }
+
+    private void OnServicioSeleccionadoChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+            _servicioSeleccionadoId = id;
+    }
+
+    private void IrABuscarHabitacion()
+    {
+        var url = $"/habitaciones" +
+                  $"?reservaId={_reserva!.ReservaId}" +
+                  $"&entrada={_reserva.FechaEntrada:yyyy-MM-dd}" +
+                  $"&salida={_reserva.FechaSalida:yyyy-MM-dd}";
+        Nav.NavigateTo(url);
+    }
+
+    // ── Acciones ──────────────────────────────────────────────────────────────
+
+    // Solo llega aquí si CambiarFechasViewModel.Validate() pasó
+    private async Task CambiarFechas()
+        => await Ejecutar(async () =>
+        {
+            await ReservaService.CambiarFechasAsync(
+                _reserva!.ReservaId,
+                _fechasModel.NuevaEntrada!.Value,
+                _fechasModel.NuevaSalida!.Value);
+            MostrarExito("Fechas actualizadas correctamente.");
+            await CargarReserva();
+        });
+
+    private async Task QuitarHabitacion(HabitacionReservaViewModel hab)
+        => await Ejecutar(async () =>
+        {
+            await ReservaService.QuitarHabitacionAsync(
+                _reserva!.ReservaId, hab.HabitacionId);
+            MostrarExito($"Habitación {hab.NumeroHabitacion} retirada.");
+            await CargarReserva();
+        });
+
+    private async Task QuitarServicio(ServicioReservaViewModel svc)
+        => await Ejecutar(async () =>
+        {
+            await ReservaService.QuitarServicioAsync(
+                _reserva!.ReservaId, svc.ServicioAdicionalId);
+            MostrarExito($"Servicio \"{svc.Nombre}\" retirado.");
+            await CargarReserva();
+        });
+
+    private async Task AgregarServicio()
+        => await Ejecutar(async () =>
+        {
+            await ReservaService.AgregarServicioAsync(
+                _reserva!.ReservaId, _servicioSeleccionadoId, _cantidad);
+            _servicioSeleccionadoId = 0;
+            _cantidad = 1;
+            MostrarExito("Servicio agregado correctamente.");
+            await CargarReserva();
+        });
+
+    private async Task Confirmar()
+        => await Ejecutar(async () =>
+        {
+            await ReservaService.ConfirmarAsync(_reserva!.ReservaId);
+            MostrarExito("¡Reserva confirmada exitosamente!");
+            await CargarReserva();
+        });
+
+    private async Task Cancelar()
+    {
+        _mostrarModalCancelacion = false;
+        await Ejecutar(async () =>
+        {
+            await ReservaService.CancelarAsync(_reserva!.ReservaId);
+            MostrarExito("Reserva cancelada.");
+            await CargarReserva();
+        });
+    }
+
+    private async Task Ejecutar(Func<Task> accion)
+    {
+        _procesando = true;
+        _mensaje = null;
+        try { await accion(); }
+        catch (Exception ex) { MostrarError(ex.Message); }
+        finally { _procesando = false; }
+    }
+
+    private void MostrarExito(string msg) { _mensaje = msg; _esError = false; }
+    private void MostrarError(string msg) { _mensaje = msg; _esError = true; }
+
+    private static string BadgeClass(string estado) => estado switch
+    {
+        "Pendiente" => "yellow",
+        "Confirmada" => "green",
+        "Cancelada" => "red",
+        "Finalizada" => "gray",
+        _ => "gray"
+    };
+}

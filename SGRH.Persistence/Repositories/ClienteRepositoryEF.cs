@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Clientes;
 using SGRH.Persistence.Context;
@@ -8,7 +9,7 @@ namespace SGRH.Persistence.Repositories;
 
 public sealed class ClienteRepositoryEF : Repository<Cliente, int>, IClienteRepository
 {
-    public ClienteRepositoryEF(SGRHDbContext db) : base(db) { }
+    public ClienteRepositoryEF(SGRHDbContext db, ILogger<ClienteRepositoryEF> logger) : base(db, logger) { }
 
     public Task<Cliente?> GetByNationalIdAsync(string nationalId, CancellationToken ct = default)
         => Db.Clientes.FirstOrDefaultAsync(c => c.NationalId == nationalId, ct);

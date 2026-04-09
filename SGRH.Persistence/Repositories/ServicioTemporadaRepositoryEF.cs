@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Persistence.Context;
 

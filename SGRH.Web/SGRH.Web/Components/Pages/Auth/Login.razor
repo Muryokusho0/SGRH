@@ -1,0 +1,124 @@
+﻿@page "/login"
+@layout Layout.AuthLayout
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Iniciar sesión — SGRH</PageTitle>
+
+<div class="login-form-wrapper">
+    <h2 class="login-title">Bienvenido</h2>
+    <p class="login-subtitle">Ingresa tus credenciales para acceder al portal</p>
+
+    @* Error general de la API (credenciales incorrectas, cuenta bloqueada, etc.) *@
+    <AlertaError Mensaje="@_errorGeneral" />
+
+    @*
+        EditForm con DataAnnotationsValidator:
+        - Lee las anotaciones de LoginViewModel ([Required], [EmailAddress], [MinLength])
+        - OnValidSubmit solo se dispara si todos los campos pasan la validación
+        - ValidationMessage muestra el mensaje del atributo debajo de cada campo
+        - Esto reemplaza la validación manual previa en HandleLogin()
+    *@
+    <EditForm Model="_model"
+              OnValidSubmit="HandleLogin"
+              FormName="login-form">
+
+        <DataAnnotationsValidator />
+
+        @* ── Email ──────────────────────────────────────────────── *@
+        <div class="form-group">
+            <label class="form-label" for="email">Correo electrónico</label>
+            <InputText id="email"
+                       class="form-input"
+                       placeholder="tu@correo.com"
+                       @bind-Value="_model.Email"
+                       disabled="@_cargando"
+                       autocomplete="email" />
+            <ValidationMessage For="() => _model.Email"
+                               class="field-error-bubble" />
+        </div>
+
+        @* ── Contraseña con toggle ──────────────────────────────── *@
+        <div class="form-group">
+            <label class="form-label" for="password">Contraseña</label>
+            <div class="input-password-wrapper">
+                @if (_mostrarPassword)
+                {
+                    <InputText id="password"
+                               class="form-input input-password"
+                               placeholder="Tu contraseña"
+                               @bind-Value="_model.Password"
+                               disabled="@_cargando"
+                               autocomplete="current-password" />
+                }
+                else
+                {
+                    <InputText id="password"
+                               type="password"
+                               class="form-input input-password"
+                               placeholder="Tu contraseña"
+                               @bind-Value="_model.Password"
+                               disabled="@_cargando"
+                               autocomplete="current-password" />
+                }
+                <button type="button"
+                        class="toggle-password"
+                        @onclick="() => _mostrarPassword = !_mostrarPassword"
+                        title="@(_mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña")">
+                    @(_mostrarPassword ? "🙈" : "👁️")
+                </button>
+            </div>
+            <ValidationMessage For="() => _model.Password"
+                               class="field-error-bubble" />
+        </div>
+
+        <SpinnerButton Cargando="@_cargando"
+                       TextoNormal="Ingresar"
+                       TextoCargando="Ingresando..." />
+    </EditForm>
+
+    <div class="auth-footer">
+        <p class="auth-footer-text">
+            ¿No tienes cuenta?
+            <a href="/registro" class="auth-footer-link">Regístrate aquí</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private readonly LoginViewModel _model = new();
+    private bool _mostrarPassword;
+    private bool _cargando;
+    private string? _errorGeneral;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+            Nav.NavigateTo("/", replace: true);
+    }
+
+    // OnValidSubmit solo llega aquí si [Required] y [EmailAddress] pasaron.
+    // Ya no necesitamos validar manualmente los campos obligatorios.
+    private async Task HandleLogin()
+    {
+        _cargando     = true;
+        _errorGeneral = null;
+        try
+        {
+            await AuthService.LoginAsync(_model);
+            Nav.NavigateTo("/", replace: true);
+        }
+        catch (Exception ex)
+        {
+            // Los errores de la API (credenciales incorrectas, cuenta inactiva)
+            // no corresponden a ningún campo específico → alerta general.
+            _errorGeneral = ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+}

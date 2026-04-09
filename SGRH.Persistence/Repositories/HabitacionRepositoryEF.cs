@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Habitaciones;
 using SGRH.Domain.Enums;
@@ -10,7 +11,7 @@ namespace SGRH.Persistence.Repositories;
 public sealed class HabitacionRepositoryEF
     : Repository<Habitacion, int>, IHabitacionRepository
 {
-    public HabitacionRepositoryEF(SGRHDbContext db) : base(db) { }
+    public HabitacionRepositoryEF(SGRHDbContext db, ILogger<HabitacionRepositoryEF> logger) : base(db, logger) { }
 
     public Task<Habitacion?> GetByIdWithHistorialAsync(
         int id, CancellationToken ct = default)

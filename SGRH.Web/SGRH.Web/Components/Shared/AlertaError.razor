@@ -1,0 +1,23 @@
+﻿@* ============================================================
+   Componente reutilizable: AlertaError
+   Uso: <AlertaError Mensaje="@_error" />
+        <AlertaError Mensaje="@_exito" EsError="false" />
+   ============================================================ *@
+
+@if (!string.IsNullOrEmpty(Mensaje))
+{
+    <div class="alert @(EsError ? "alert-error" : "alert-success")">
+        <span>@(EsError ? "⚠️" : "✅")</span> @Mensaje
+    </div>
+}
+
+@code {
+    /// <summary>Mensaje a mostrar. Si es null o vacío el componente no se renderiza.</summary>
+    [Parameter] public string? Mensaje { get; set; }
+
+    /// <summary>
+    /// true  → alerta de error (fondo rojo).
+    /// false → alerta de éxito (fondo verde).
+    /// </summary>
+    [Parameter] public bool EsError { get; set; } = true;
+}

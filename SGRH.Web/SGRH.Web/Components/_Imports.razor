@@ -1,10 +1,26 @@
 ﻿@using System.Net.Http
 @using System.Net.Http.Json
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
-@using static Microsoft.AspNetCore.Components.Web.RenderMode
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @using Microsoft.JSInterop
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
 @using SGRH.Web
 @using SGRH.Web.Components
+@using SGRH.Web.Components.Shared
+@using SGRH.Web.Models
+@using SGRH.Web.Models.Auth
+@using SGRH.Web.Models.Reservas
+@using SGRH.Web.Models.Habitaciones
+@using SGRH.Web.Models.Servicios
+@using SGRH.Web.Models.Categorias
+@using SGRH.Web.Models.Temporadas
+@using SGRH.Web.Services.Auth
+@using SGRH.Web.Services.Reservas
+@using SGRH.Web.Services.Habitaciones
+@using SGRH.Web.Services.Servicios
+@using SGRH.Web.Services.Categorias
+@using SGRH.Web.Services.Temporadas

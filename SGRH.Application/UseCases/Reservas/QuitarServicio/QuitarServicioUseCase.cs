@@ -28,19 +28,22 @@ public sealed class QuitarServicioUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
-        // ── 1. Buscar — lectura fuera de transacción ──────────────────────
         var reserva = await _reservas.GetByIdWithDetallesAsync(request.ReservaId, ct)
             ?? throw new NotFoundException("Reserva", request.ReservaId.ToString());
 
-        // ── 2. Transacción ────────────────────────────────────────────────
         await _uow.BeginTransactionAsync(ct);
         try
         {
+            // Capturar la cantidad ANTES de quitar el servicio
+            var cantidadAnterior = reserva.Servicios
+                .FirstOrDefault(s => s.ServicioAdicionalId == request.ServicioAdicionalId)
+                ?.Cantidad;
+
             reserva.QuitarServicio(request.ServicioAdicionalId);
 
             await _uow.SaveChangesAsync(ct);
 
-            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+            var evento = new AuditoriaEvento(
                 usuarioId: usuarioActualId,
                 rol: usuarioActualRol,
                 usernameSnapshot: usernameActual,
@@ -51,8 +54,21 @@ public sealed class QuitarServicioUseCase
                 requestId: request.AuditInfo.RequestId,
                 ipOrigen: request.AuditInfo.IpOrigen,
                 userAgent: request.AuditInfo.UserAgent,
-                descripcion: $"Servicio {request.ServicioAdicionalId} removido de reserva {reserva.ReservaId}."), ct);
+                descripcion: $"Servicio {request.ServicioAdicionalId} removido de reserva {reserva.ReservaId}.");
 
+            // ── Detalles del cambio ───────────────────────────────────────
+            evento.AgregarDetalle(
+                campo: "ServicioAdicionalId",
+                valorAnterior: request.ServicioAdicionalId.ToString(),
+                valorNuevo: null);
+
+            if (cantidadAnterior.HasValue)
+                evento.AgregarDetalle(
+                    campo: "Cantidad",
+                    valorAnterior: cantidadAnterior.Value.ToString(),
+                    valorNuevo: null);
+
+            await _auditoria.RegistrarAsync(evento, ct);
             await _uow.CommitAsync(ct);
         }
         catch

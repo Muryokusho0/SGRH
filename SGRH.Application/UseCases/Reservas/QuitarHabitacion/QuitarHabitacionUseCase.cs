@@ -32,11 +32,9 @@ public sealed class QuitarHabitacionUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
-        // ── 1. Buscar — lectura fuera de transacción ──────────────────────
         var reserva = await _reservas.GetByIdWithDetallesAsync(request.ReservaId, ct)
             ?? throw new NotFoundException("Reserva", request.ReservaId.ToString());
 
-        // ── 2. Transacción ────────────────────────────────────────────────
         await _uow.BeginTransactionAsync(ct);
         try
         {
@@ -44,7 +42,7 @@ public sealed class QuitarHabitacionUseCase
 
             await _uow.SaveChangesAsync(ct);
 
-            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+            var evento = new AuditoriaEvento(
                 usuarioId: usuarioActualId,
                 rol: usuarioActualRol,
                 usernameSnapshot: usernameActual,
@@ -55,8 +53,15 @@ public sealed class QuitarHabitacionUseCase
                 requestId: request.AuditInfo.RequestId,
                 ipOrigen: request.AuditInfo.IpOrigen,
                 userAgent: request.AuditInfo.UserAgent,
-                descripcion: $"Habitación {request.HabitacionId} removida de reserva {reserva.ReservaId}."), ct);
+                descripcion: $"Habitación {request.HabitacionId} removida de reserva {reserva.ReservaId}.");
 
+            // ── Detalle del cambio ────────────────────────────────────────
+            evento.AgregarDetalle(
+                campo: "HabitacionId",
+                valorAnterior: request.HabitacionId.ToString(),
+                valorNuevo: null);
+
+            await _auditoria.RegistrarAsync(evento, ct);
             await _uow.CommitAsync(ct);
         }
         catch

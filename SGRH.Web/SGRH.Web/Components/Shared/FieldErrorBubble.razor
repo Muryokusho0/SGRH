@@ -1,0 +1,16 @@
+﻿@* ============================================================
+   Componente reutilizable: FieldErrorBubble
+   Muestra el error debajo de un campo de formulario con la
+   flecha CSS apuntando hacia el input.
+   Uso: <FieldErrorBubble Mensaje="@_errores.GetValueOrDefault("email")" />
+   ============================================================ *@
+
+@if (!string.IsNullOrEmpty(Mensaje))
+{
+    <span class="field-error-bubble">⚠ @Mensaje</span>
+}
+
+@code {
+    /// <summary>Mensaje de error del campo. Si es null o vacío no se renderiza.</summary>
+    [Parameter] public string? Mensaje { get; set; }
+}

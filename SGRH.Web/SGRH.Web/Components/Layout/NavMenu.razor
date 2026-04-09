@@ -1,0 +1,76 @@
+﻿@inject IAuthService AuthService
+@inject NavigationManager Nav
+
+<AuthorizeView>
+    <Authorized>
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-logo-icon">🏨</span>
+                <div>
+                    <p class="sidebar-logo-title">SGRH</p>
+                    <p class="sidebar-user">@context.User.Identity?.Name</p>
+                </div>
+            </div>
+
+            <ul class="sidebar-nav">
+                <li>
+                    <NavLink href="/" Match="NavLinkMatch.All"
+                             class="sidebar-link" ActiveClass="sidebar-link--active">
+                        <span class="sidebar-icon">🏠</span>
+                        <span>Inicio</span>
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink href="/reservas"
+                             class="sidebar-link" ActiveClass="sidebar-link--active">
+                        <span class="sidebar-icon">📋</span>
+                        <span>Mis Reservas</span>
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink href="/reservas/nueva"
+                             class="sidebar-link" ActiveClass="sidebar-link--active">
+                        <span class="sidebar-icon">➕</span>
+                        <span>Nueva Reserva</span>
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink href="/habitaciones"
+                             class="sidebar-link" ActiveClass="sidebar-link--active">
+                        <span class="sidebar-icon">🛏️</span>
+                        <span>Habitaciones</span>
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink href="/temporadas"
+                             class="sidebar-link" ActiveClass="sidebar-link--active">
+                        <span class="sidebar-icon">🗓️</span>
+                        <span>Temporadas</span>
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink href="/perfil"
+                             class="sidebar-link" ActiveClass="sidebar-link--active">
+                        <span class="sidebar-icon">👤</span>
+                        <span>Mi Perfil</span>
+                    </NavLink>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <button class="sidebar-logout" @onclick="CerrarSesion">
+                    <span class="sidebar-icon">🚪</span>
+                    <span>Cerrar sesión</span>
+                </button>
+            </div>
+        </nav>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private void CerrarSesion()
+    {
+        AuthService.Logout();
+        Nav.NavigateTo("/login", forceLoad: false);
+    }
+}

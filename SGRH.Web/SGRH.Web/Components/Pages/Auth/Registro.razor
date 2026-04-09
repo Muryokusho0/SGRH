@@ -1,0 +1,227 @@
+﻿@page "/registro"
+@layout Layout.AuthLayout
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Crear cuenta — SGRH</PageTitle>
+
+<div class="login-form-wrapper">
+    <h2 class="login-title">Crear cuenta</h2>
+    <p class="login-subtitle">Completa tus datos para registrarte</p>
+
+    @* Error general de la API (email ya registrado, cédula duplicada, etc.) *@
+    <AlertaError Mensaje="@_errorGeneral" />
+
+    @*
+        EditForm con DataAnnotationsValidator:
+        Lee las anotaciones de RegisterViewModel:
+          [Required]         → campo obligatorio
+          [MaxLength]        → longitud máxima (igual que RegisterValidator en la API)
+          [EmailAddress]     → formato de correo
+          [MinLength]        → mínimo de contraseña
+          [Compare]          → confirmar contraseña == contraseña
+
+        OnValidSubmit solo se ejecuta si todas las anotaciones pasan.
+        ValidationMessage renderiza el ErrorMessage de cada atributo debajo del campo.
+    *@
+    <EditForm Model="_model"
+              OnValidSubmit="HandleRegistro"
+              FormName="registro-form">
+
+        <DataAnnotationsValidator />
+
+        @* ── Nombre y Apellido ──────────────────────────────────── *@
+        <div class="form-row-2">
+            <div class="form-group">
+                <label class="form-label" for="nombre">Nombre</label>
+                <InputText id="nombre"
+                           class="form-input"
+                           placeholder="Tu nombre"
+                           @bind-Value="_model.NombreCliente"
+                           disabled="@_cargando" />
+                <ValidationMessage For="() => _model.NombreCliente"
+                                   class="field-error-bubble" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="apellido">Apellido</label>
+                <InputText id="apellido"
+                           class="form-input"
+                           placeholder="Tu apellido"
+                           @bind-Value="_model.ApellidoCliente"
+                           disabled="@_cargando" />
+                <ValidationMessage For="() => _model.ApellidoCliente"
+                                   class="field-error-bubble" />
+            </div>
+        </div>
+
+        @* ── Cédula ─────────────────────────────────────────────── *@
+        <div class="form-group">
+            <label class="form-label" for="cedula">Cédula / Identificación</label>
+            <InputText id="cedula"
+                       class="form-input"
+                       placeholder="Ej: 402-0000000-0"
+                       @bind-Value="_model.NationalId"
+                       disabled="@_cargando" />
+            <ValidationMessage For="() => _model.NationalId"
+                               class="field-error-bubble" />
+        </div>
+
+        @* ── Teléfono ───────────────────────────────────────────── *@
+        <div class="form-group">
+            <label class="form-label" for="telefono">Teléfono</label>
+            <InputText id="telefono"
+                       class="form-input"
+                       placeholder="Ej: 809-000-0000"
+                       @bind-Value="_model.Telefono"
+                       disabled="@_cargando" />
+            <ValidationMessage For="() => _model.Telefono"
+                               class="field-error-bubble" />
+        </div>
+
+        @* ── Email ──────────────────────────────────────────────── *@
+        <div class="form-group">
+            <label class="form-label" for="email">Correo electrónico</label>
+            <InputText id="email"
+                       class="form-input"
+                       placeholder="tu@correo.com"
+                       @bind-Value="_model.Email"
+                       disabled="@_cargando"
+                       autocomplete="email" />
+            <p class="form-hint">Este correo será tu usuario para iniciar sesión</p>
+            <ValidationMessage For="() => _model.Email"
+                               class="field-error-bubble" />
+        </div>
+
+        @* ── Contraseña con toggle ──────────────────────────────── *@
+        <div class="form-group">
+            <label class="form-label" for="password">Contraseña</label>
+            <div class="input-password-wrapper">
+                @if (_mostrarPassword)
+                {
+                    <InputText id="password"
+                               class="form-input input-password"
+                               placeholder="Mínimo 8 caracteres"
+                               @bind-Value="_model.Password"
+                               disabled="@_cargando"
+                               autocomplete="new-password" />
+                }
+                else
+                {
+                    <InputText id="password"
+                               type="password"
+                               class="form-input input-password"
+                               placeholder="Mínimo 8 caracteres"
+                               @bind-Value="_model.Password"
+                               disabled="@_cargando"
+                               autocomplete="new-password" />
+                }
+                <button type="button"
+                        class="toggle-password"
+                        @onclick="() => _mostrarPassword = !_mostrarPassword"
+                        title="@(_mostrarPassword ? "Ocultar" : "Mostrar")">
+                    @(_mostrarPassword ? "🙈" : "👁️")
+                </button>
+            </div>
+            <ValidationMessage For="() => _model.Password"
+                               class="field-error-bubble" />
+        </div>
+
+        @* ── Confirmar contraseña ───────────────────────────────── *@
+        <div class="form-group">
+            <label class="form-label" for="confirmar">Confirmar contraseña</label>
+            <div class="input-password-wrapper">
+                @if (_mostrarConfirmar)
+                {
+                    <InputText id="confirmar"
+                               class="form-input input-password"
+                               placeholder="Repite tu contraseña"
+                               @bind-Value="_model.ConfirmarPassword"
+                               disabled="@_cargando"
+                               autocomplete="new-password" />
+                }
+                else
+                {
+                    <InputText id="confirmar"
+                               type="password"
+                               class="form-input input-password"
+                               placeholder="Repite tu contraseña"
+                               @bind-Value="_model.ConfirmarPassword"
+                               disabled="@_cargando"
+                               autocomplete="new-password" />
+                }
+                <button type="button"
+                        class="toggle-password"
+                        @onclick="() => _mostrarConfirmar = !_mostrarConfirmar"
+                        title="@(_mostrarConfirmar ? "Ocultar" : "Mostrar")">
+                    @(_mostrarConfirmar ? "🙈" : "👁️")
+                </button>
+            </div>
+            @* [Compare] activa el mensaje "Las contraseñas no coinciden." automáticamente *@
+            <ValidationMessage For="() => _model.ConfirmarPassword"
+                               class="field-error-bubble" />
+        </div>
+
+        <SpinnerButton Cargando="@_cargando"
+                       TextoNormal="Crear cuenta"
+                       TextoCargando="Creando cuenta..." />
+    </EditForm>
+
+    <div class="auth-footer">
+        <p class="auth-footer-text">
+            ¿Ya tienes cuenta?
+            <a href="/login" class="auth-footer-link">Inicia sesión</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private readonly RegisterViewModel _model = new();
+    private bool _mostrarPassword;
+    private bool _mostrarConfirmar;
+    private bool _cargando;
+    private string? _errorGeneral;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+            Nav.NavigateTo("/", replace: true);
+    }
+
+    // OnValidSubmit solo llega aquí si TODOS los [Required], [EmailAddress],
+    // [MinLength] y [Compare] pasaron. No se necesita validación manual adicional.
+    private async Task HandleRegistro()
+    {
+        _cargando     = true;
+        _errorGeneral = null;
+        try
+        {
+            await AuthService.RegisterAsync(_model);
+            Nav.NavigateTo("/", replace: true);
+        }
+        catch (Exception ex)
+        {
+            // El ApiErrorHelper intenta mapear el error al campo correspondiente.
+            // Si no corresponde a ningún campo, se muestra como alerta general.
+            MapearErrorApi(ex.Message);
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    /// <summary>
+    /// Mapea los mensajes de error de la API al campo correspondiente
+    /// usando el contexto de la palabra clave en el mensaje.
+    /// </summary>
+    private void MapearErrorApi(string mensaje)
+    {
+        // Para errores de campo individuales que vienen de la API,
+        // los mostramos directamente como alerta general porque con EditForm
+        // los campos ya tienen su ValidationMessage propio para errores de formato.
+        // Los errores de negocio (email duplicado, cédula existente) van en la alerta.
+        _errorGeneral = mensaje;
+    }
+}

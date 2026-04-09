@@ -1,0 +1,144 @@
+﻿@page "/reservas"
+@attribute [Authorize]
+@inject IReservaService ReservaService
+@inject NavigationManager Nav
+
+<PageTitle>Mis Reservas — SGRH</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Mis Reservas</h1>
+        <p class="page-subtitle">Gestiona todas tus reservas desde aquí</p>
+    </div>
+    <button class="btn-primary" @onclick='() => Nav.NavigateTo("/reservas/nueva")'>
+        ➕ Nueva reserva
+    </button>
+</div>
+
+@* ── Filtros por estado ──────────────────────────────────────────── *@
+<div class="filter-bar">
+    @foreach (var estado in _estados)
+    {
+        <button class="filter-chip @(_filtro == estado ? "filter-chip--active" : "")"
+                @onclick="() => AplicarFiltro(estado)">
+            @estado
+        </button>
+    }
+</div>
+
+@if (_cargando)
+{
+    <div class="loading-center">
+        <span class="spinner-lg"></span>
+        <p>Cargando reservas...</p>
+    </div>
+}
+else if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-error">⚠️ @_error</div>
+}
+else if (!_filtradas.Any())
+{
+    <div class="empty-state">
+        <span class="empty-icon">📋</span>
+        <p class="empty-title">
+            @(_filtro == "Todas"
+                ? "Aún no tienes reservas"
+                : $"No tienes reservas en estado \"{_filtro}\"")
+        </p>
+        @if (_filtro == "Todas")
+        {
+            <button class="btn-primary"
+                    @onclick='() => Nav.NavigateTo("/reservas/nueva")'>
+                Crear mi primera reserva
+            </button>
+        }
+    </div>
+}
+else
+{
+    <div class="reservas-grid">
+        @foreach (var r in _filtradas)
+        {
+            <div class="reserva-card" @onclick="() => VerDetalle(r)">
+                <div class="reserva-card-header">
+                    <span class="badge badge--@BadgeClass(r.Estado)">@r.Estado</span>
+                    <span class="reserva-card-cost">RD$ @r.CostoTotal.ToString("N2")</span>
+                </div>
+                <div class="reserva-card-dates">
+                    <div class="reserva-date-block">
+                        <p class="reserva-date-label">Entrada</p>
+                        <p class="reserva-date-value">
+                            @r.FechaEntrada.ToString("dd MMM yyyy")
+                        </p>
+                    </div>
+                    <div class="reserva-date-divider">
+                        <p class="reserva-nights">
+                            @r.Noches noche@(r.Noches == 1 ? "" : "s")
+                        </p>
+                        <span>→</span>
+                    </div>
+                    <div class="reserva-date-block reserva-date-block--right">
+                        <p class="reserva-date-label">Salida</p>
+                        <p class="reserva-date-value">
+                            @r.FechaSalida.ToString("dd MMM yyyy")
+                        </p>
+                    </div>
+                </div>
+                <div class="reserva-card-footer">
+                    <span class="reserva-meta">🛏️ @r.TotalHabitaciones hab.</span>
+                    <span class="reserva-meta">🛎️ @r.TotalServicios serv.</span>
+                    <span class="reserva-card-action">Ver detalle ›</span>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _cargando = true;
+    private string? _error;
+    private string _filtro = "Todas";
+    private List<ReservaViewModel> _todas = [];
+    private List<ReservaViewModel> _filtradas = [];
+
+    private static readonly string[] _estados =
+        ["Todas", "Pendiente", "Confirmada", "Cancelada", "Finalizada"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _todas = await ReservaService.ListarMisReservasAsync();
+            AplicarFiltro("Todas");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void AplicarFiltro(string estado)
+    {
+        _filtro = estado;
+        _filtradas = estado == "Todas"
+            ? _todas
+            : _todas.Where(r => r.Estado == estado).ToList();
+    }
+
+    private void VerDetalle(ReservaViewModel r)
+        => Nav.NavigateTo($"/reservas/{r.ReservaId}");
+
+    private static string BadgeClass(string estado) => estado switch
+    {
+        "Pendiente" => "yellow",
+        "Confirmada" => "green",
+        "Cancelada" => "red",
+        "Finalizada" => "gray",
+        _ => "gray"
+    };
+}

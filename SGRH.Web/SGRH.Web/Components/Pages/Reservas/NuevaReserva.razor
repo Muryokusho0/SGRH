@@ -1,0 +1,478 @@
+﻿@page "/reservas/nueva"
+@attribute [Authorize]
+@inject IReservaService ReservaService
+@inject IHabitacionService HabitacionService
+@inject IServicioService ServicioService
+@inject ICategoriaService CategoriaService
+@inject NavigationManager Nav
+
+<PageTitle>Nueva Reserva — SGRH</PageTitle>
+
+<div class="page-header">
+    <div>
+        <button class="btn-back" @onclick='() => Nav.NavigateTo("/reservas")'>
+            ← Mis Reservas
+        </button>
+        <h1 class="page-title">Nueva Reserva</h1>
+    </div>
+</div>
+
+@* ── Stepper ─────────────────────────────────────────────────────────────── *@
+<div class="stepper">
+    <div class="step @StepClass(1)">
+        <span class="step-number">@(_paso > 1 ? "✓" : "1")</span>
+        <span class="step-label">Fechas</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step @StepClass(2)">
+        <span class="step-number">@(_paso > 2 ? "✓" : "2")</span>
+        <span class="step-label">Habitaciones</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="step @StepClass(3)">
+        <span class="step-number">3</span>
+        <span class="step-label">Servicios</span>
+    </div>
+</div>
+
+<AlertaError Mensaje="@_error" />
+
+@* ════ PASO 1 — Fechas con EditForm + DataAnnotationsValidator ═══════════ *@
+@if (_paso == 1)
+{
+    <div class="wizard-card">
+        <h2 class="wizard-card-title">📅 ¿Cuándo quieres hospedarte?</h2>
+        <p class="wizard-card-subtitle">
+            Selecciona las fechas usando el calendario
+        </p>
+
+        @*
+            EditForm sobre NuevaReservaFechasViewModel:
+            - [Required] valida campos obligatorios antes de llamar a la API
+            - IValidatableObject valida que la entrada sea > hoy y salida > entrada
+            - OnValidSubmit solo ejecuta BuscarHabitaciones si todo pasa
+        *@
+        <EditForm Model="_fechasModel"
+                  OnValidSubmit="BuscarHabitaciones"
+                  FormName="nuevareserva-fechas">
+            <DataAnnotationsValidator />
+
+            <div class="date-picker-grid">
+                <div class="form-group">
+                    <label class="form-label">Fecha de entrada</label>
+                    <InputDate class="form-input form-input--date"
+                               @bind-Value="_fechasModel.FechaEntrada"
+                               min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
+                    <ValidationMessage For="() => _fechasModel.FechaEntrada"
+                                       class="field-error-bubble" />
+                    <p class="form-hint">Mínimo desde mañana</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fecha de salida</label>
+                    <InputDate class="form-input form-input--date"
+                               @bind-Value="_fechasModel.FechaSalida" />
+                    <ValidationMessage For="() => _fechasModel.FechaSalida"
+                                       class="field-error-bubble" />
+                    <p class="form-hint">Mínimo 1 noche</p>
+                </div>
+            </div>
+
+            @if (_fechasModel.FechaEntrada.HasValue && _fechasModel.FechaSalida.HasValue
+                             && _fechasModel.FechaSalida > _fechasModel.FechaEntrada)
+            {
+                var noches = (int)(_fechasModel.FechaSalida.Value
+                                 - _fechasModel.FechaEntrada.Value).TotalDays;
+                <div class="date-summary">
+                    <span class="date-summary-icon">🌙</span>
+                    <span>@noches noche@(noches == 1 ? "" : "s")</span>
+                    <span class="date-summary-range">
+                        @_fechasModel.FechaEntrada.Value.ToString("dd MMM")
+                        → @_fechasModel.FechaSalida.Value.ToString("dd MMM yyyy")
+                    </span>
+                </div>
+            }
+
+            <div class="form-group" style="margin-top: 20px;">
+                <label class="form-label">Categoría (opcional)</label>
+                <select class="form-input form-select"
+                        value="@_categoriaId"
+                        @onchange="e => _categoriaId =
+                                            int.TryParse(e.Value?.ToString(), out var v) ? v : 0">
+<option value="0">Todas las categorías</option>
+@foreach (var cat in _categorias)
+                    {
+                        <option value="@cat.CategoriaHabitacionId">
+                            @cat.OpcionDropdown
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="wizard-actions">
+                <SpinnerButton Cargando="@_cargando"
+                               TextoNormal="Ver habitaciones disponibles →"
+                               TextoCargando="Buscando..." />
+            </div>
+        </EditForm>
+    </div>
+}
+
+@* ════ PASO 2 — Habitaciones (multi-selección) ══════════════════════════ *@
+@if (_paso == 2)
+{
+    <div class="wizard-card">
+        <div class="wizard-card-header">
+            <div>
+                <h2 class="wizard-card-title">🛏️ Selecciona las habitaciones</h2>
+                <p class="wizard-card-subtitle">
+                    Puedes elegir una o varias ·
+                    @_fechasModel.FechaEntrada!.Value.ToString("dd MMM")
+                    → @_fechasModel.FechaSalida!.Value.ToString("dd MMM yyyy") ·
+                    @Noches noche@(Noches == 1 ? "" : "s")
+                </p>
+            </div>
+            <button class="btn-back-sm"
+                    @onclick="() => { _paso = 1; _habitacionesSeleccionadas.Clear(); }">
+                ← Cambiar fechas
+            </button>
+        </div>
+
+        @if (!_habitaciones.Any())
+        {
+            <div class="empty-state">
+                <span class="empty-icon">🛏️</span>
+                <p class="empty-title">
+                    No hay habitaciones disponibles para esas fechas
+                </p>
+                <button class="btn-secondary" @onclick="() => _paso = 1">
+                    Cambiar fechas
+                </button>
+            </div>
+        }
+        else
+        {
+            @if (_habitacionesSeleccionadas.Any())
+            {
+                <div class="selection-summary">
+                    <span>
+                        ✅ @_habitacionesSeleccionadas.Count
+                        habitación@(_habitacionesSeleccionadas.Count == 1 ? "" : "es")
+                        seleccionada@(_habitacionesSeleccionadas.Count == 1 ? "" : "s")
+                    </span>
+                    @if (_habitacionesSeleccionadas.Any(h => h.TarifaPorNoche > 0))
+                    {
+                        <span>
+                            · RD$
+                            @(_habitacionesSeleccionadas.Sum(
+                                h => h.TarifaPorNoche * Noches).ToString("N2"))
+                            estimado
+                        </span>
+                    }
+                </div>
+            }
+
+            <div class="habitaciones-grid">
+                @foreach (var hab in _habitaciones)
+                {
+                    var habLocal = hab;
+                    var sel = _habitacionesSeleccionadas
+                        .Any(s => s.HabitacionId == habLocal.HabitacionId);
+
+                    <div class="habitacion-card @(sel ? "habitacion-card--selected" : "")"
+                         @onclick="() => ToggleHabitacion(habLocal)">
+                        @if (sel)
+                        {
+                            <div class="habitacion-card-check">✓</div>
+                        }
+                        <div class="habitacion-card-header">
+                            <span class="habitacion-numero">@habLocal.NumeroTexto</span>
+                            <span class="habitacion-piso">@habLocal.PisoTexto</span>
+                        </div>
+                        <p class="habitacion-categoria">@habLocal.Categoria</p>
+                        @if (habLocal.TarifaPorNoche > 0)
+                        {
+                            <p class="habitacion-tarifa">
+                                RD$ @habLocal.TarifaPorNoche.ToString("N2") / noche
+                            </p>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="wizard-actions">
+                <button class="btn-primary"
+                        @onclick="PasarAServicios"
+                        disabled="@(!_habitacionesSeleccionadas.Any())">
+                    Continuar → Servicios
+                    @if (_habitacionesSeleccionadas.Any())
+                    {
+                        <span>(@_habitacionesSeleccionadas.Count)</span>
+                    }
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@* ════ PASO 3 — Servicios + resumen ════════════════════════════════════ *@
+@if (_paso == 3)
+{
+    <div class="wizard-card">
+        <div class="wizard-card-header">
+            <div>
+                <h2 class="wizard-card-title">🛎️ Servicios adicionales</h2>
+                <p class="wizard-card-subtitle">
+                    Opcional — puedes omitir este paso
+                </p>
+            </div>
+            <button class="btn-back-sm" @onclick="() => _paso = 2">
+                ← Cambiar habitaciones
+            </button>
+        </div>
+
+        <div class="resumen-preview">
+            @foreach (var hab in _habitacionesSeleccionadas)
+            {
+                var habLocal = hab;
+                <div class="resumen-row">
+                    <span>🛏️ @habLocal.NumeroTexto — @habLocal.Categoria</span>
+                    @if (habLocal.TarifaPorNoche > 0)
+                    {
+                        <span>
+                            RD$ @(habLocal.TarifaPorNoche* Noches).ToString("N2")
+                        </span>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (_servicios.Any())
+        {
+            <div class="servicios-grid">
+                @foreach (var svc in _servicios)
+                {
+                    var svcLocal = svc;
+                    var agregado = _serviciosAgregados
+                        .FirstOrDefault(s =>
+                            s.ServicioAdicionalId == svcLocal.ServicioAdicionalId);
+
+                    <div class="servicio-card @(agregado is not null
+                                                                         ? "servicio-card--selected" : "")">
+                        <div class="servicio-card-info">
+                            <p class="servicio-nombre">@svcLocal.Nombre</p>
+                            <p class="servicio-tipo">@svcLocal.Tipo</p>
+                            @if (svcLocal.PrecioUnitario > 0)
+                            {
+                                <p class="servicio-precio">
+                                    RD$ @svcLocal.PrecioUnitario.ToString("N2") c/u
+                                </p>
+                            }
+                        </div>
+                        @if (agregado is not null)
+                        {
+                            <div class="servicio-qty">
+                                <button class="qty-btn"
+                                        @onclick="() => DecrementarServicio(agregado)">
+                                    −
+                                </button>
+                                <span class="qty-value">@agregado.Cantidad</span>
+                                <button class="qty-btn"
+                                        @onclick="() => agregado.Cantidad++">
+                                    +
+                                </button>
+                                <button class="btn-icon btn-icon--danger"
+                                        @onclick="() => QuitarServicioWizard(svcLocal)">
+                                    🗑️
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <button class="btn-add-service"
+                                    @onclick="() => AgregarServicioWizard(svcLocal)">
+                                ➕ Agregar
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="empty-inline">
+                No hay servicios disponibles para estas fechas.
+            </p>
+        }
+
+        @{
+            var costoHabs = _habitacionesSeleccionadas
+                .Sum(h => h.TarifaPorNoche * Noches);
+            var costoSvcs = _serviciosAgregados.Sum(s => s.Subtotal);
+            var total = costoHabs + costoSvcs;
+        }
+
+        @if (_habitacionesSeleccionadas.Any(h => h.TarifaPorNoche > 0))
+        {
+            <div class="costo-resumen">
+                @foreach (var hab in _habitacionesSeleccionadas.Where(
+                                    h => h.TarifaPorNoche > 0))
+                {
+                    var habLocal = hab;
+                    <div class="costo-fila">
+                        <span>
+                            @habLocal.NumeroTexto
+                            (@Noches noche@(Noches == 1 ? "" : "s"))
+                        </span>
+                        <span>
+                            RD$ @(habLocal.TarifaPorNoche* Noches).ToString("N2")
+                        </span>
+                    </div>
+                }
+                @foreach (var s in _serviciosAgregados)
+                {
+                    var sLocal = s;
+                    <div class="costo-fila">
+                        <span>@sLocal.Nombre × @sLocal.Cantidad</span>
+                        <span>RD$ @sLocal.Subtotal.ToString("N2")</span>
+                    </div>
+                }
+                <div class="costo-total-fila">
+                    <span>Total estimado</span>
+                    <span>RD$ @total.ToString("N2")</span>
+                </div>
+            </div>
+        }
+
+        <div class="wizard-actions">
+            <SpinnerButton Cargando="@_procesando"
+                           TextoNormal="✅ Crear reserva"
+                           TextoCargando="Creando reserva..."
+                           OnClick="CrearReserva" />
+        </div>
+    </div>
+}
+
+@code {
+    private int _paso = 1;
+    private bool _cargando;
+    private bool _procesando;
+    private string? _error;
+
+    // Paso 1 — model con DataAnnotations + IValidatableObject
+    private readonly NuevaReservaFechasViewModel _fechasModel = new();
+
+    private int _categoriaId;
+    private List<CategoriaViewModel> _categorias = [];
+
+    // Paso 2
+    private List<HabitacionDisponibleViewModel> _habitaciones = [];
+    private List<HabitacionDisponibleViewModel> _habitacionesSeleccionadas = [];
+
+    // Paso 3
+    private List<ServicioViewModel> _servicios = [];
+    private List<ServicioSeleccionadoViewModel> _serviciosAgregados = [];
+
+    private int Noches => _fechasModel.FechaEntrada.HasValue
+                       && _fechasModel.FechaSalida.HasValue
+        ? Math.Max((int)(_fechasModel.FechaSalida.Value
+                       - _fechasModel.FechaEntrada.Value).TotalDays, 0)
+        : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _categorias = await CategoriaService.ListarAsync(); } catch { }
+    }
+
+    // ── Paso 1 → 2 (solo llega aquí si EditForm validó) ──────────────────────
+    private async Task BuscarHabitaciones()
+    {
+        _error = null;
+        _cargando = true;
+        try
+        {
+            _habitaciones = await HabitacionService.ListarDisponiblesAsync(
+                _fechasModel.FechaEntrada!.Value,
+                _fechasModel.FechaSalida!.Value,
+                _categoriaId == 0 ? null : _categoriaId);
+            _habitacionesSeleccionadas.Clear();
+            _paso = 2;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _cargando = false; }
+    }
+
+    private void ToggleHabitacion(HabitacionDisponibleViewModel hab)
+    {
+        var existente = _habitacionesSeleccionadas
+            .FirstOrDefault(s => s.HabitacionId == hab.HabitacionId);
+        if (existente is not null)
+            _habitacionesSeleccionadas.Remove(existente);
+        else
+            _habitacionesSeleccionadas.Add(hab);
+    }
+
+    // ── Paso 2 → 3 ───────────────────────────────────────────────────────────
+    private async Task PasarAServicios()
+    {
+        try
+        {
+            _servicios = await ServicioService.ListarAsync(
+                _fechasModel.FechaEntrada);
+        }
+        catch { }
+        _serviciosAgregados = [];
+        _paso = 3;
+    }
+
+    private void AgregarServicioWizard(ServicioViewModel svc)
+        => _serviciosAgregados.Add(new ServicioSeleccionadoViewModel
+        {
+            ServicioAdicionalId = svc.ServicioAdicionalId,
+            Nombre = svc.Nombre,
+            Tipo = svc.Tipo,
+            PrecioUnitario = svc.PrecioUnitario,
+            Cantidad = 1
+        });
+
+    private void QuitarServicioWizard(ServicioViewModel svc)
+        => _serviciosAgregados.RemoveAll(
+            s => s.ServicioAdicionalId == svc.ServicioAdicionalId);
+
+    private void DecrementarServicio(ServicioSeleccionadoViewModel item)
+    {
+        if (item.Cantidad > 1) item.Cantidad--;
+        else _serviciosAgregados.Remove(item);
+    }
+
+    // ── Crear reserva ─────────────────────────────────────────────────────────
+    private async Task CrearReserva()
+    {
+        _procesando = true;
+        _error = null;
+        try
+        {
+            var reservaId = await ReservaService.CrearAsync(
+                _fechasModel.FechaEntrada!.Value,
+                _fechasModel.FechaSalida!.Value);
+
+            foreach (var hab in _habitacionesSeleccionadas)
+                await ReservaService.AgregarHabitacionAsync(
+                    reservaId, hab.NumeroHabitacion);
+
+            foreach (var svc in _serviciosAgregados)
+                await ReservaService.AgregarServicioAsync(
+                    reservaId, svc.ServicioAdicionalId, svc.Cantidad);
+
+            Nav.NavigateTo($"/reservas/{reservaId}");
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _procesando = false; }
+    }
+
+    private string StepClass(int paso)
+    {
+        if (_paso > paso) return "step--done";
+        if (_paso == paso) return "step--active";
+        return string.Empty;
+    }
+}

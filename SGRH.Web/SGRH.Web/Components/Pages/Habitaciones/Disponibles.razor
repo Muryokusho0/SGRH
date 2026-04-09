@@ -1,0 +1,221 @@
+﻿@page "/habitaciones"
+@attribute [Authorize]
+@inject IHabitacionService HabitacionService
+@inject ICategoriaService CategoriaService
+@inject IReservaService ReservaService
+@inject NavigationManager Nav
+
+<PageTitle>Habitaciones Disponibles — SGRH</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Habitaciones Disponibles</h1>
+        <p class="page-subtitle">
+            Selecciona las fechas para ver qué habitaciones están disponibles
+        </p>
+    </div>
+</div>
+
+@* ── Formulario de búsqueda con calendar picker ──────────────────── *@
+<div class="search-card">
+    <div class="search-grid">
+        <div class="form-group">
+            <label class="form-label">Entrada</label>
+            <input type="date"
+                   class="form-input form-input--date"
+                   @bind="_entrada"
+                   min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="form-group">
+            <label class="form-label">Salida</label>
+            <input type="date"
+                   class="form-input form-input--date"
+                   @bind="_salida"
+                   min="@_entrada.AddDays(1).ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="form-group">
+            <label class="form-label">Categoría</label>
+            <select class="form-input form-select" @bind="_categoriaId">
+                <option value="0">Todas</option>
+                @foreach (var cat in _categorias)
+                {
+                    <option value="@cat.CategoriaHabitacionId">@cat.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="form-group form-group--action">
+            <button class="btn-primary"
+                    @onclick="Buscar"
+                    disabled="@(_salida <= _entrada || _cargando)">
+                @if (_cargando)
+                {
+                    <span class="spinner"></span>
+                }
+                else
+                {
+                    <span>🔍 Buscar</span>
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Resultados ──────────────────────────────────────────────────── *@
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-error">⚠️ @_error</div>
+}
+
+@if (_buscado)
+{
+    @if (!_habitaciones.Any())
+    {
+        <div class="empty-state">
+            <span class="empty-icon">🛏️</span>
+            <p class="empty-title">
+                No hay habitaciones disponibles para esas fechas
+            </p>
+            <p class="empty-subtitle">Prueba con otras fechas o sin filtro de categoría</p>
+        </div>
+    }
+    else
+    {
+        <div class="results-header">
+            <p class="results-count">
+                @_habitaciones.Count habitación@(_habitaciones.Count == 1 ? "" : "es") disponible@(_habitaciones.Count == 1 ? "" : "s")
+            </p>
+            <p class="results-range">
+                @_entrada.ToString("dd MMM") → @_salida.ToString("dd MMM yyyy") ·
+                @((int)(_salida - _entrada).TotalDays) noche@((int)(_salida - _entrada).TotalDays == 1 ? "" : "s")
+            </p>
+        </div>
+
+        <div class="habitaciones-grid">
+            @foreach (var hab in _habitaciones)
+            {
+                <div class="habitacion-card">
+                    <div class="habitacion-card-body">
+                        <div class="habitacion-card-header">
+                            <span class="habitacion-numero">@hab.NumeroTexto</span>
+                            <span class="habitacion-piso">@hab.PisoTexto</span>
+                        </div>
+                        <p class="habitacion-categoria">@hab.Categoria</p>
+                        @if (hab.TarifaPorNoche > 0)
+                        {
+                            <p class="habitacion-tarifa">
+                                RD$ @hab.TarifaPorNoche.ToString("N2") / noche
+                            </p>
+                        }
+                    </div>
+
+                    @* Si viene desde DetalleReserva, agregar directo a esa reserva *@
+                    @if (_reservaIdDestino.HasValue)
+                    {
+                        <button class="btn-primary btn-full"
+                                @onclick="() => AgregarAReserva(hab)"
+                                disabled="@_procesando">
+                            ➕ Agregar a mi reserva
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn-secondary btn-full"
+                                @onclick='() => Nav.NavigateTo("/reservas/nueva")'>
+                            Reservar estas fechas
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
+}
+else if (!_cargando)
+{
+    <div class="empty-state empty-state--soft">
+        <span class="empty-icon">📅</span>
+        <p class="empty-title">Selecciona las fechas para ver disponibilidad</p>
+    </div>
+}
+
+@* Mensaje flotante de acción *@
+@if (!string.IsNullOrEmpty(_mensajeAccion))
+{
+    <div class="alert @(_accionError ? "alert-error" : "alert-success") alert-floating">
+        @_mensajeAccion
+    </div>
+}
+
+@code {
+    // Query params opcionales cuando se llega desde DetalleReserva
+    [SupplyParameterFromQuery] public int? ReservaId { get; set; }
+    [SupplyParameterFromQuery] public string? Entrada { get; set; }
+    [SupplyParameterFromQuery] public string? Salida { get; set; }
+
+    private DateTime _entrada = DateTime.Today.AddDays(1);
+    private DateTime _salida = DateTime.Today.AddDays(2);
+    private int _categoriaId;
+    private List<CategoriaViewModel> _categorias = [];
+    private List<HabitacionDisponibleViewModel> _habitaciones = [];
+    private bool _cargando;
+    private bool _buscado;
+    private bool _procesando;
+    private string? _error;
+    private string? _mensajeAccion;
+    private bool _accionError;
+    private int? _reservaIdDestino;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Pre-cargar fechas si vienen como parámetros desde DetalleReserva
+        if (DateTime.TryParse(Entrada, out var e)) _entrada = e;
+        if (DateTime.TryParse(Salida, out var s)) _salida = s;
+        _reservaIdDestino = ReservaId;
+
+        try { _categorias = await CategoriaService.ListarAsync(); } catch { }
+
+        // Si hay fechas válidas pre-cargadas, buscar automáticamente
+        if (_salida > _entrada)
+            await Buscar();
+    }
+
+    private async Task Buscar()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _habitaciones = await HabitacionService.ListarDisponiblesAsync(
+                _entrada, _salida,
+                _categoriaId == 0 ? null : _categoriaId);
+            _buscado = true;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task AgregarAReserva(HabitacionDisponibleViewModel hab)
+    {
+        _procesando = true;
+        try
+        {
+            await ReservaService.AgregarHabitacionAsync(
+                _reservaIdDestino!.Value, hab.NumeroHabitacion);
+            Nav.NavigateTo($"/reservas/{_reservaIdDestino}");
+        }
+        catch (Exception ex)
+        {
+            _mensajeAccion = ex.Message;
+            _accionError = true;
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+}

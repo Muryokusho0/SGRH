@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Seguridad;
 using SGRH.Domain.Enums;
@@ -10,7 +11,7 @@ namespace SGRH.Persistence.Repositories;
 public sealed class UsuarioRepositoryEF
     : Repository<Usuario, int>, IUsuarioRepository
 {
-    public UsuarioRepositoryEF(SGRHDbContext db) : base(db) { }
+    public UsuarioRepositoryEF(SGRHDbContext db, ILogger<UsuarioRepositoryEF> logger) : base(db, logger) { }
 
     public Task<Usuario?> GetByUsernameAsync(
         string username, CancellationToken ct = default)

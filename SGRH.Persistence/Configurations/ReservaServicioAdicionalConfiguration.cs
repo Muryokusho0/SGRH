@@ -29,17 +29,19 @@ public sealed class ReservaServicioAdicionalConfiguration
             .IsRequired();
 
         // SubTotal es calculado en memoria — no persiste desde EF.
-        // SubTotalAplicado es columna computada PERSISTED en SQL Server —
-        // EF no la mapea para evitar que ReaderModificationCommandBatch
-        // intente leerla con OUTPUT clause, lo cual falla con triggers.
+        // SubTotalAplicado es columna computada PERSISTED en SQL Server.
         b.Ignore(x => x.SubTotal);
 
         b.HasOne<Reserva>()
             .WithMany(r => r.Servicios)
             .HasForeignKey(x => x.ReservaId)
             .IsRequired()
-            .OnDelete(DeleteBehavior.Restrict);
+            // ClientCascade: EF Core elimina el ReservaServicioAdicional huérfano
+            // cuando se remueve de Reserva.Servicios en memoria.
+            // Mismo razonamiento que DetalleReservaConfiguration.
+            .OnDelete(DeleteBehavior.ClientCascade);
 
+        // La relación ServicioAdicional → RSA sigue siendo Restrict.
         b.HasOne<ServicioAdicional>()
             .WithMany()
             .HasForeignKey(x => x.ServicioAdicionalId)

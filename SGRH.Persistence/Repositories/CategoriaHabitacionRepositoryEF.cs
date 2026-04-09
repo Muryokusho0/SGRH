@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Habitaciones;
 using SGRH.Persistence.Context;
@@ -9,7 +10,7 @@ namespace SGRH.Persistence.Repositories;
 public sealed class CategoriaHabitacionRepositoryEF
     : Repository<CategoriaHabitacion, int>, ICategoriaHabitacionRepository
 {
-    public CategoriaHabitacionRepositoryEF(SGRHDbContext db) : base(db) { }
+    public CategoriaHabitacionRepositoryEF(SGRHDbContext db, ILogger<CategoriaHabitacionRepositoryEF> logger) : base(db, logger) { }
 
     public Task<bool> ExistsByNombreAsync(string nombre, CancellationToken ct = default)
         => Db.CategoriasHabitacion

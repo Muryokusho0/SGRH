@@ -98,15 +98,24 @@ public sealed class ReservaDomainPolicy : IReservaDomainPolicy
     public void EnsureServicioDisponibleEnTemporada(
         int servicioAdicionalId, int? temporadaId)
     {
-        if (!temporadaId.HasValue) return;
-
         var servicio = _servicios
             .GetByIdWithTemporadasAsync(servicioAdicionalId)
             .GetAwaiter().GetResult()
             ?? throw new NotFoundException("ServicioAdicional", servicioAdicionalId.ToString());
 
-        // Si aplica a todas las temporadas, no hay nada que validar
+        // Regla de negocio:
+        // - AplicaTodasTemporadas = true  → disponible siempre, sin importar la temporada.
+        // - AplicaTodasTemporadas = false → el servicio es específico de temporada:
+        //     · Si hay temporada activa: solo disponible si está asignado a ella.
+        //     · Si NO hay temporada activa: NO disponible — el servicio
+        //       requiere una temporada activa específica para poderse agregar.
         if (servicio.AplicaTodasTemporadas) return;
+
+        if (!temporadaId.HasValue)
+            throw new BusinessRuleViolationException(
+                $"El servicio '{servicio.NombreServicio}' solo está disponible durante " +
+                $"temporadas específicas. Las fechas seleccionadas no corresponden a " +
+                $"ninguna temporada activa.");
 
         if (!servicio.TemporadaIds.Contains(temporadaId.Value))
             throw new BusinessRuleViolationException(

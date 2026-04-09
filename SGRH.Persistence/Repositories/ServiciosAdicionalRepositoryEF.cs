@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Servicios;
 using SGRH.Persistence.Context;
@@ -9,19 +10,19 @@ namespace SGRH.Persistence.Repositories;
 public sealed class ServicioAdicionalRepositoryEF
     : Repository<ServicioAdicional, int>, IServicioAdicionalRepository
 {
-    public ServicioAdicionalRepositoryEF(SGRHDbContext db) : base(db) { }
+    public ServicioAdicionalRepositoryEF(
+        SGRHDbContext db,
+        ILogger<ServicioAdicionalRepositoryEF> logger)
+        : base(db, logger) { }
 
-    public Task<bool> ExistsByNombreAsync(string nombreServicio, CancellationToken ct = default)
+    public Task<bool> ExistsByNombreAsync(
+        string nombreServicio, CancellationToken ct = default)
         => Db.ServiciosAdicionales
             .AnyAsync(s => s.NombreServicio == nombreServicio, ct);
 
     public async Task<ServicioAdicional?> GetByIdWithTemporadasAsync(
         int id, CancellationToken ct = default)
     {
-        // AsNoTracking para evitar que EF devuelva la entidad ya trackeada
-        // con _temporadaIds ya populados de una llamada anterior.
-        // Sin AsNoTracking, una segunda llamada en la misma request intentaría
-        // agregar los mismos TemporadaIds y HabilitarEnTemporada lanzaría ConflictException.
         var servicio = await Db.ServiciosAdicionales
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.ServicioAdicionalId == id, ct);
@@ -44,9 +45,38 @@ public sealed class ServicioAdicionalRepositoryEF
         string? nombre, CancellationToken ct = default)
     {
         var query = Db.ServiciosAdicionales.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(nombre))
+            query = query.Where(s => s.NombreServicio.Contains(nombre));
+        return query.OrderBy(s => s.NombreServicio).ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public Task<List<ServicioAdicional>> BuscarDisponiblesAsync(
+        string? nombre, int? temporadaId, CancellationToken ct = default)
+    {
+        var query = Db.ServiciosAdicionales.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(nombre))
             query = query.Where(s => s.NombreServicio.Contains(nombre));
+
+        if (temporadaId.HasValue)
+        {
+            var tId = temporadaId.Value;
+            // Con temporada activa: servicios universales + los de esta temporada
+            query = query.Where(s =>
+                s.AplicaTodasTemporadas ||
+                Db.ServicioTemporadas.Any(st =>
+                    st.ServicioAdicionalId == s.ServicioAdicionalId &&
+                    st.TemporadaId == tId));
+        }
+        else
+        {
+            // Sin temporada activa: SOLO servicios universales.
+            // Los servicios específicos de temporada NO están disponibles
+            // cuando no hay ninguna temporada activa — coherente con la
+            // regla de negocio en ReservaDomainPolicy y ServicioAdicional.EstaDisponibleEn.
+            query = query.Where(s => s.AplicaTodasTemporadas);
+        }
 
         return query.OrderBy(s => s.NombreServicio).ToListAsync(ct);
     }

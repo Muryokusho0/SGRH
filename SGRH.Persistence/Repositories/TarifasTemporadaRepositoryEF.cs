@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Habitaciones;
 using SGRH.Persistence.Context;
@@ -9,7 +10,7 @@ namespace SGRH.Persistence.Repositories;
 public sealed class TarifaTemporadaRepositoryEF
     : Repository<TarifaTemporada, int>, ITarifaTemporadaRepository
 {
-    public TarifaTemporadaRepositoryEF(SGRHDbContext db) : base(db) { }
+    public TarifaTemporadaRepositoryEF(SGRHDbContext db, ILogger<TarifaTemporadaRepositoryEF> logger) : base(db, logger) { }
 
     public Task<bool> ExisteParaCategoriaYTemporadaAsync(
         int categoriaHabitacionId, int temporadaId, CancellationToken ct = default)

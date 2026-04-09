@@ -1,0 +1,72 @@
+﻿@page "/temporadas"
+@attribute [Authorize]
+@inject SGRH.Web.Services.Temporadas.ITemporadaService TemporadaService
+
+<PageTitle>Temporadas — SGRH</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Temporadas</h1>
+        <p class="page-subtitle">Períodos tarifarios del hotel</p>
+    </div>
+</div>
+
+@if (_cargando)
+{
+    <div class="loading-center">
+        <span class="spinner-lg"></span>
+        <p>Cargando temporadas...</p>
+    </div>
+}
+else if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-error">⚠️ @_error</div>
+}
+else if (!_temporadas.Any())
+{
+    <div class="empty-state">
+        <span class="empty-icon">📅</span>
+        <p class="empty-title">No hay temporadas configuradas aún</p>
+    </div>
+}
+else
+{
+    <div class="temporadas-grid">
+        @foreach (var t in _temporadas)
+        {
+            <div class="temporada-card @(t.EsActual ? "temporada-card--activa" : "")">
+                @if (t.EsActual)
+                {
+                    <span class="temporada-badge-activa">✅ Activa ahora</span>
+                }
+                <p class="temporada-nombre">@t.Nombre</p>
+                <p class="temporada-rango">
+                    <span class="temporada-icon">📅</span>
+                    @t.RangoTexto
+                </p>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<SGRH.Web.Models.Temporadas.TemporadaViewModel> _temporadas = [];
+    private bool _cargando = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _temporadas = await TemporadaService.ListarAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+}

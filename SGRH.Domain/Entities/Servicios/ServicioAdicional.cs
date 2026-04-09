@@ -111,11 +111,14 @@ public sealed class ServicioAdicional : EntityBase
     /// </returns>
     public bool EstaDisponibleEn(int? temporadaId)
     {
-        // Si aplica a todas, siempre está disponible sin importar la temporada
+        // Servicio universal: disponible siempre
         if (AplicaTodasTemporadas) return true;
 
-        // Sin temporada activa → disponible
-        if (temporadaId is null) return true;
+        // Servicio específico de temporada:
+        // - Sin temporada activa → NO disponible
+        //   (requiere que haya una temporada que lo incluya explícitamente)
+        // - Con temporada activa → disponible solo si está asignado a esa temporada
+        if (temporadaId is null) return false;
 
         return _temporadaIds.Contains(temporadaId.Value);
     }

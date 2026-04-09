@@ -1,6 +1,29 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+﻿<Router AppAssembly="typeof(App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData"
+                            DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                @* Redirige al login cualquier ruta protegida sin sesión activa *@
+                <RedirectToLogin />
+            </NotAuthorized>
+            <Authorizing>
+                <div class="loading-center">
+                    <span class="spinner-lg"></span>
+                    <p>Verificando acceso...</p>
+                </div>
+            </Authorizing>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <PageTitle>Página no encontrada — SGRH</PageTitle>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <div class="empty-state" style="margin-top: 80px;">
+                <span class="empty-icon">🔍</span>
+                <p class="empty-title">Página no encontrada</p>
+                <p class="empty-subtitle">La dirección que buscas no existe.</p>
+                <a href="/" class="btn-primary">Volver al inicio</a>
+            </div>
+        </LayoutView>
+    </NotFound>
 </Router>

@@ -58,9 +58,11 @@ public sealed class ServiciosController : BaseApiController
     /// <summary>Lista servicios con filtro opcional por nombre.</summary>
     [HttpGet]
     public async Task<IActionResult> Listar(
-        [FromQuery] string? nombre, CancellationToken ct)
+        [FromQuery] string? nombre,
+        [FromQuery] DateTime? fechaEntrada,
+        CancellationToken ct)
     {
-        var response = await _listar.ExecuteAsync(nombre, ct);
+        var response = await _listar.ExecuteAsync(nombre, fechaEntrada, ct);
         return Ok(response);
     }
 

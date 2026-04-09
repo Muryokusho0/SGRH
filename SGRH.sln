@@ -1,5 +1,4 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -12,10 +11,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SGRH.Auth", "SGRH.Auth\SGRH.Auth.csproj", "{24E83595-A97B-45B2-9246-8FA73760AFA5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SGRH.Infrastructure", "SGRH.Infrastructure\SGRH.Infrastructure.csproj", "{47AE14EE-C403-4B01-8EAA-E4E061CC07A8}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SGRH.Desktop", "SGRH.Desktop", "{E4FD946A-1DB7-34F5-9FBF-060151E9D59B}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SGRH.Desktop", "SGRH.Desktop\SGRH.Desktop\SGRH.Desktop.csproj", "{02CDD0F5-7405-4A91-9369-CADAC8258883}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SGRH.Web", "SGRH.Web", "{D74C04FC-88FE-FA6C-EDB0-73BEB01605A3}"
 EndProject
@@ -91,18 +86,6 @@ Global
 		{47AE14EE-C403-4B01-8EAA-E4E061CC07A8}.Release|x64.Build.0 = Release|Any CPU
 		{47AE14EE-C403-4B01-8EAA-E4E061CC07A8}.Release|x86.ActiveCfg = Release|Any CPU
 		{47AE14EE-C403-4B01-8EAA-E4E061CC07A8}.Release|x86.Build.0 = Release|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Debug|x64.Build.0 = Debug|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Debug|x86.Build.0 = Debug|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Release|Any CPU.Build.0 = Release|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Release|x64.ActiveCfg = Release|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Release|x64.Build.0 = Release|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Release|x86.ActiveCfg = Release|Any CPU
-		{02CDD0F5-7405-4A91-9369-CADAC8258883}.Release|x86.Build.0 = Release|Any CPU
 		{247124FF-EF1E-43E8-AACD-69D2E1E5D6DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{247124FF-EF1E-43E8-AACD-69D2E1E5D6DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{247124FF-EF1E-43E8-AACD-69D2E1E5D6DA}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -120,7 +103,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{02CDD0F5-7405-4A91-9369-CADAC8258883} = {E4FD946A-1DB7-34F5-9FBF-060151E9D59B}
 		{247124FF-EF1E-43E8-AACD-69D2E1E5D6DA} = {D74C04FC-88FE-FA6C-EDB0-73BEB01605A3}
 	EndGlobalSection
 EndGlobal

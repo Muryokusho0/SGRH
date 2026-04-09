@@ -370,6 +370,16 @@ public sealed class Reserva : EntityBase
     /// el trigger <c>TR_Reserva_CambioFechas_RevalidarHabitaciones</c> en la base de datos.
     /// </remarks>
     /// <param name="policy">Política de dominio para obtener tarifas y precios actualizados.</param>
+    /// <summary>
+    /// Recalcula tarifas de habitaciones y precios de servicios cuando cambia
+    /// la composición de habitaciones de la reserva.
+    ///
+    /// NOTA: NO se revalida EnsureServicioDisponibleEnTemporada aquí.
+    /// La validación de disponibilidad por temporada solo corresponde al momento
+    /// de AGREGAR un servicio nuevo. Los servicios ya existentes en la reserva
+    /// fueron validados cuando se agregaron; revalidarlos al quitar/agregar
+    /// habitaciones crearía un bloqueo circular que impediría modificar la reserva.
+    /// </summary>
     private void RecalcularSnapshots(IReservaDomainPolicy policy)
     {
         if (EstadoReserva != EstadoReserva.Pendiente) return;
@@ -380,10 +390,8 @@ public sealed class Reserva : EntityBase
             detalle.ActualizarTarifa(nuevaTarifa);
         }
 
-        var temporadaId = policy.GetTemporadaId(FechaEntrada);
         foreach (var servicio in _servicios)
         {
-            policy.EnsureServicioDisponibleEnTemporada(servicio.ServicioAdicionalId, temporadaId);
             var nuevoPrecio = policy.GetPrecioServicioAplicado(ReservaId, servicio.ServicioAdicionalId);
             servicio.ActualizarPrecioUnitario(nuevoPrecio);
         }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Habitaciones;
@@ -15,7 +16,7 @@ namespace SGRH.Persistence.Repositories;
 public sealed class HabitacionHistorialRepositoryEF
     : Repository<HabitacionHistorial, int>, IHabitacionHistorialRepository
 {
-    public HabitacionHistorialRepositoryEF(SGRHDbContext db) : base(db)
+    public HabitacionHistorialRepositoryEF(SGRHDbContext db, ILogger<HabitacionHistorialRepositoryEF> logger) : base(db, logger)
     {
     }
 

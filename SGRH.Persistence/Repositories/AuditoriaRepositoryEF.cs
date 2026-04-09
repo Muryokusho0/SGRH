@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Auditoria;
 using SGRH.Persistence.Context;
@@ -9,7 +10,7 @@ namespace SGRH.Persistence.Repositories;
 public sealed class AuditoriaRepositoryEF
     : Repository<AuditoriaEvento, long>, IAuditoriaRepository
 {
-    public AuditoriaRepositoryEF(SGRHDbContext db) : base(db) { }
+    public AuditoriaRepositoryEF(SGRHDbContext db, ILogger<AuditoriaRepositoryEF> logger) : base(db, logger) { }
 
     public override Task<AuditoriaEvento?> GetByIdAsync(long id, CancellationToken ct = default)
         => Db.AuditoriaEventos.FirstOrDefaultAsync(a => a.AuditoriaEventoId == id, ct);

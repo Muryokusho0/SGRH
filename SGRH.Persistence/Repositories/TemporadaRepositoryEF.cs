@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Temporadas;
 using SGRH.Persistence.Context;
@@ -9,7 +10,7 @@ namespace SGRH.Persistence.Repositories;
 public sealed class TemporadaRepositoryEF
     : Repository<Temporada, int>, ITemporadaRepository
 {
-    public TemporadaRepositoryEF(SGRHDbContext db) : base(db) { }
+    public TemporadaRepositoryEF(SGRHDbContext db, ILogger<TemporadaRepositoryEF> logger) : base(db, logger) { }
 
     // FechaFin es exclusiva: [FechaInicio, FechaFin)
     public Task<Temporada?> GetByFechaAsync(

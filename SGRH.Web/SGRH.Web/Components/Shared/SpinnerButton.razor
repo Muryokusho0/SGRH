@@ -1,0 +1,31 @@
+﻿@* ============================================================
+   Componente reutilizable: SpinnerButton
+   Botón primario con spinner de carga integrado.
+   Uso: <SpinnerButton Cargando="@_cargando"
+                       TextoNormal="Ingresar"
+                       TextoCargando="Ingresando..."
+                       OnClick="HandleLogin" />
+   ============================================================ *@
+
+<button class="btn-primary @(FullWidth ? "btn-full" : "")"
+        @onclick="OnClick"
+        disabled="@(Cargando || Deshabilitado)">
+    @if (Cargando)
+    {
+        <span class="spinner"></span>
+        <span>@TextoCargando</span>
+    }
+    else
+    {
+        <span>@TextoNormal</span>
+    }
+</button>
+
+@code {
+    [Parameter] public bool Cargando { get; set; }
+    [Parameter] public bool Deshabilitado { get; set; }
+    [Parameter] public bool FullWidth { get; set; } = true;
+    [Parameter] public string TextoNormal { get; set; } = "Aceptar";
+    [Parameter] public string TextoCargando { get; set; } = "Procesando...";
+    [Parameter] public EventCallback OnClick { get; set; }
+}

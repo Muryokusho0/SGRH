@@ -37,25 +37,21 @@ public sealed class AgregarHabitacionUseCase
         string usernameActual,
         CancellationToken ct = default)
     {
-        // ── 1. Validar — fuera de transacción ─────────────────────────────
         var validacion = await _validator.ValidateAsync(request, ct);
         if (!validacion.IsValid)
             throw new ApplicationValidationException(validacion.Errors);
 
-        // ── 2. Buscar — lectura fuera de transacción ──────────────────────
         var reserva = await _reservas.GetByIdWithDetallesAsync(request.ReservaId, ct)
             ?? throw new NotFoundException("Reserva", request.ReservaId.ToString());
 
-        // ── 3. Transacción ────────────────────────────────────────────────
         await _uow.BeginTransactionAsync(ct);
         try
         {
-            // La entidad + policy lanzan si la habitación no está disponible
             reserva.AgregarHabitacion(request.HabitacionId, _policy);
 
             await _uow.SaveChangesAsync(ct);
 
-            await _auditoria.RegistrarAsync(new AuditoriaEvento(
+            var evento = new AuditoriaEvento(
                 usuarioId: usuarioActualId,
                 rol: usuarioActualRol,
                 usernameSnapshot: usernameActual,
@@ -66,8 +62,15 @@ public sealed class AgregarHabitacionUseCase
                 requestId: request.AuditInfo.RequestId,
                 ipOrigen: request.AuditInfo.IpOrigen,
                 userAgent: request.AuditInfo.UserAgent,
-                descripcion: $"Habitación {request.HabitacionId} agregada a reserva {reserva.ReservaId}."), ct);
+                descripcion: $"Habitación {request.HabitacionId} agregada a reserva {reserva.ReservaId}.");
 
+            // ── Detalle del cambio ────────────────────────────────────────
+            evento.AgregarDetalle(
+                campo: "HabitacionId",
+                valorAnterior: null,
+                valorNuevo: request.HabitacionId.ToString());
+
+            await _auditoria.RegistrarAsync(evento, ct);
             await _uow.CommitAsync(ct);
         }
         catch

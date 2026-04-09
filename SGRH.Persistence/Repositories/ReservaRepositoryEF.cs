@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SGRH.Domain.Abstractions.Repositories;
 using SGRH.Domain.Entities.Reservas;
 using SGRH.Domain.Enums;
@@ -10,7 +11,10 @@ namespace SGRH.Persistence.Repositories;
 public sealed class ReservaRepositoryEF
     : Repository<Reserva, int>, IReservaRepository
 {
-    public ReservaRepositoryEF(SGRHDbContext db) : base(db) { }
+    public ReservaRepositoryEF(
+        SGRHDbContext db,
+        ILogger<ReservaRepositoryEF> logger)
+        : base(db, logger) { }
 
     public Task<Reserva?> GetByIdWithDetallesAsync(
         int reservaId, CancellationToken ct = default)

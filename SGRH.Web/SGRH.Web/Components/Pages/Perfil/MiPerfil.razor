@@ -1,0 +1,47 @@
+﻿@page "/perfil"
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Mi Perfil — SGRH</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Mi Perfil</h1>
+        <p class="page-subtitle">Información de tu cuenta</p>
+    </div>
+</div>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="profile-card">
+            <div class="profile-avatar">
+                <span class="profile-avatar-icon">👤</span>
+            </div>
+            <div class="profile-info">
+                <p class="profile-username">@context.User.Identity?.Name</p>
+                <p class="profile-role">Cliente</p>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <h2 class="detail-card-title">🔐 Sesión activa</h2>
+            <p class="profile-hint">
+                Tu sesión se mantiene activa mientras navegues en el portal.
+                Al cerrar la pestaña del navegador deberás iniciar sesión nuevamente.
+            </p>
+            <button class="btn-danger mt-3" @onclick="CerrarSesion">
+                🚪 Cerrar sesión
+            </button>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private void CerrarSesion()
+    {
+        AuthService.Logout();
+        Nav.NavigateTo("/login", forceLoad: false);
+    }
+}

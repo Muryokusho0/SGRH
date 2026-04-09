@@ -1,7 +1,167 @@
 ﻿@page "/"
+@attribute [Authorize]
+@inject IReservaService ReservaService
+@inject NavigationManager Nav
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Inicio — SGRH</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">¡Bienvenido!</h1>
+        <p class="page-subtitle">Aquí tienes un resumen de tu actividad.</p>
+    </div>
+</div>
 
-Welcome to your new app.
+@if (_cargando)
+{
+    <div class="loading-center">
+        <span class="spinner-lg"></span>
+        <p>Cargando tu información...</p>
+    </div>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-error">⚠️ @_error</div>
+    }
+
+    @* ── Tarjetas de resumen ─────────────────────────────────────── *@
+    <div class="stats-grid">
+        <div class="stat-card stat-card--blue">
+            <span class="stat-icon">📋</span>
+            <div>
+                <p class="stat-label">Total de reservas</p>
+                <p class="stat-value">@_total</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card--yellow">
+            <span class="stat-icon">⏳</span>
+            <div>
+                <p class="stat-label">Pendientes</p>
+                <p class="stat-value">@_pendientes</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card--green">
+            <span class="stat-icon">✅</span>
+            <div>
+                <p class="stat-label">Confirmadas</p>
+                <p class="stat-value">@_confirmadas</p>
+            </div>
+        </div>
+        <div class="stat-card stat-card--gray">
+            <span class="stat-icon">🏁</span>
+            <div>
+                <p class="stat-label">Finalizadas</p>
+                <p class="stat-value">@_finalizadas</p>
+            </div>
+        </div>
+    </div>
+
+    @* ── Acciones rápidas ────────────────────────────────────────── *@
+    <div class="quick-actions">
+        <h2 class="section-title">Acciones rápidas</h2>
+        <div class="quick-actions-grid">
+            <button class="quick-card" @onclick='() => Nav.NavigateTo("/reservas/nueva")'>
+                <span class="quick-card-icon">➕</span>
+                <p class="quick-card-title">Nueva reserva</p>
+                <p class="quick-card-desc">
+                    Busca habitaciones disponibles y crea tu próxima estadía
+                </p>
+            </button>
+            <button class="quick-card" @onclick='() => Nav.NavigateTo("/reservas")'>
+                <span class="quick-card-icon">📋</span>
+                <p class="quick-card-title">Mis reservas</p>
+                <p class="quick-card-desc">
+                    Consulta, modifica o cancela tus reservas activas
+                </p>
+            </button>
+            <button class="quick-card" @onclick='() => Nav.NavigateTo("/habitaciones")'>
+                <span class="quick-card-icon">🛏️</span>
+                <p class="quick-card-title">Ver habitaciones</p>
+                <p class="quick-card-desc">
+                    Explora las habitaciones disponibles para tus fechas
+                </p>
+            </button>
+        </div>
+    </div>
+
+    @* ── Últimas reservas ────────────────────────────────────────── *@
+    @if (_ultimas.Any())
+    {
+        <div class="recent-section">
+            <h2 class="section-title">Últimas reservas</h2>
+            <div class="reservas-list">
+                @foreach (var r in _ultimas)
+                {
+                    <div class="reserva-row" @onclick="() => VerDetalle(r)">
+                        <div class="reserva-row-dates">
+                            <span class="reserva-row-date">
+                                @r.FechaEntrada.ToString("dd MMM yyyy")
+                            </span>
+                            <span class="reserva-row-arrow">→</span>
+                            <span class="reserva-row-date">
+                                @r.FechaSalida.ToString("dd MMM yyyy")
+                            </span>
+                            <span class="reserva-row-nights">
+                                (@r.Noches noche@(r.Noches == 1 ? "" : "s"))
+                            </span>
+                        </div>
+                        <div class="reserva-row-info">
+                            <span class="badge badge--@BadgeClass(r.Estado)">
+                                @r.Estado
+                            </span>
+                            <span class="reserva-row-cost">
+                                RD$ @r.CostoTotal.ToString("N2")
+                            </span>
+                        </div>
+                        <span class="reserva-row-chevron">›</span>
+                    </div>
+                }
+            </div>
+            <button class="btn-link" @onclick='() => Nav.NavigateTo("/reservas")'>
+                Ver todas mis reservas →
+            </button>
+        </div>
+    }
+}
+
+@code {
+    private bool _cargando = true;
+    private string? _error;
+    private int _total, _pendientes, _confirmadas, _finalizadas;
+    private List<ReservaViewModel> _ultimas = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var reservas = await ReservaService.ListarMisReservasAsync();
+            _total = reservas.Count;
+            _pendientes = reservas.Count(r => r.Estado == "Pendiente");
+            _confirmadas = reservas.Count(r => r.Estado == "Confirmada");
+            _finalizadas = reservas.Count(r => r.Estado == "Finalizada");
+            _ultimas = reservas.Take(3).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void VerDetalle(ReservaViewModel r)
+        => Nav.NavigateTo($"/reservas/{r.ReservaId}");
+
+    private static string BadgeClass(string estado) => estado switch
+    {
+        "Pendiente" => "yellow",
+        "Confirmada" => "green",
+        "Cancelada" => "red",
+        "Finalizada" => "gray",
+        _ => "gray"
+    };
+}

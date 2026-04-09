@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="utf-8" />
@@ -7,11 +7,11 @@
     <base href="/" />
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="SGRH.Web.styles.css" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="@RenderMode.InteractiveServer" />
 </head>
 
 <body>
-    <Routes />
+    <Routes @rendermode="@RenderMode.InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
 </body>
 

@@ -2,12 +2,17 @@
 using Microsoft.Extensions.Logging;
 using SGRH.Application.Common.Exceptions;
 using SGRH.Domain.Exceptions;
+using SGRH.Persistence.Exceptions;
 using System.Text.Json;
 
 namespace SGRH.Api.Middleware;
 
 /// <summary>
 /// Middleware global de excepciones que transforma errores en JSON consistente.
+///
+/// Maneja adicionalmente <see cref="PersistenceException"/> lanzadas por la
+/// capa de persistencia, mapeando cada <see cref="PersistenceErrorType"/>
+/// al código HTTP apropiado.
 /// </summary>
 public sealed class ExceptionHandlingMiddleware
 {
@@ -19,7 +24,6 @@ public sealed class ExceptionHandlingMiddleware
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    /// <summary>Inicializa el middleware con el siguiente delegado y logger.</summary>
     public ExceptionHandlingMiddleware(
         RequestDelegate next,
         ILogger<ExceptionHandlingMiddleware> logger)
@@ -28,7 +32,6 @@ public sealed class ExceptionHandlingMiddleware
         _logger = logger;
     }
 
-    /// <summary>Ejecuta el siguiente middleware y captura excepciones.</summary>
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -41,7 +44,6 @@ public sealed class ExceptionHandlingMiddleware
         }
     }
 
-    /// <summary>Convierte una excepción en respuesta HTTP con formato estándar.</summary>
     private async Task HandleAsync(HttpContext context, Exception ex)
     {
         var (status, title, errors) = ex switch
@@ -58,34 +60,74 @@ public sealed class ExceptionHandlingMiddleware
             NotFoundException e =>
                 (404, e.Message, EmptyErrors()),
 
-            // ── 409 — Conflicto de unicidad ───────────────────────────────
+            // ── 409 — Conflicto de unicidad o concurrencia ────────────────
             ConflictException e =>
                 (409, e.Message, EmptyErrors()),
+
+            // ── 409 / 400 / 500 — Excepciones de persistencia ────────────
+            // PersistenceException puede indicar distintos tipos de error
+            // según su PersistenceErrorType. Se mapea cada tipo al código
+            // HTTP más apropiado para comunicar correctamente al cliente.
+            PersistenceException e =>
+                MapPersistenceException(e),
 
             // ── 422 — Regla de negocio violada ────────────────────────────
             BusinessRuleViolationException e =>
                 (422, e.Message, EmptyErrors()),
 
-            // ── 500 — Cualquier otra excepción ────────────────────────────
+            // ── 500 — Cualquier otra excepción no anticipada ──────────────
             _ =>
-                (500, "Ha ocurrido un error interno. Por favor intente de nuevo.", EmptyErrors())
+                (500, "Ha ocurrido un error interno. Por favor intente de nuevo.",
+                 EmptyErrors())
         };
 
-        // Solo los 500 se loguean — los errores de negocio son esperados
-        if (status == 500)
+        // Solo los errores 5xx se loguean como Error — los errores de negocio
+        // (4xx) son flujos esperados y se loguean como Warning.
+        if (status >= 500)
             _logger.LogError(ex,
                 "Unhandled exception en {Method} {Path}",
                 context.Request.Method,
                 context.Request.Path);
+        else if (status == 409 || status == 422)
+            _logger.LogWarning(ex,
+                "Business/persistence exception en {Method} {Path}: {Title}",
+                context.Request.Method,
+                context.Request.Path,
+                title);
 
         context.Response.StatusCode = status;
         context.Response.ContentType = "application/json";
 
-        var body = JsonSerializer.Serialize(new ErrorResponse(status, title, errors), _jsonOptions);
+        var body = JsonSerializer.Serialize(
+            new ErrorResponse(status, title, errors), _jsonOptions);
         await context.Response.WriteAsync(body);
     }
 
-    /// <summary>Devuelve una lista vacía de errores.</summary>
+    /// <summary>
+    /// Mapea el tipo de error de persistencia al código HTTP y mensaje apropiados.
+    /// </summary>
+    private static (int Status, string Title, IReadOnlyList<string> Errors)
+        MapPersistenceException(PersistenceException ex)
+        => ex.ErrorType switch
+        {
+            // Restricción única → 409 Conflict
+            PersistenceErrorType.UniqueConstraintViolation =>
+                (409, ex.Message, EmptyErrors()),
+
+            // Restricción de FK → 400 Bad Request
+            // (el cliente envió datos que referencian algo que no existe)
+            PersistenceErrorType.ForeignKeyViolation =>
+                (400, ex.Message, EmptyErrors()),
+
+            // Conflicto de concurrencia → 409 Conflict
+            PersistenceErrorType.ConcurrencyConflict =>
+                (409, ex.Message, EmptyErrors()),
+
+            // Error general de BD → 500 Internal Server Error
+            _ =>
+                (500, "Error al procesar la operación en la base de datos.", EmptyErrors())
+        };
+
     private static IReadOnlyList<string> EmptyErrors() => [];
 }
 
