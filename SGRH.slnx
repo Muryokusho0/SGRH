@@ -22,6 +22,10 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
+  <Folder Name="/Test/">
+    <Project Path="Test/SGRH.Tests.Application/SGRH.Tests.Application.csproj" Id="22b3ed29-6302-43fd-b1c8-a2b15021c9c6" />
+    <Project Path="Test/SGRH.Tests.Domain/SGRH.Tests.Domain.csproj" Id="6ecc0890-8730-4206-8db7-d75ffea35971" />
+  </Folder>
   <Folder Name="/Web/">
     <Project Path="SGRH.Web/SGRH.Web/SGRH.Web.csproj" Id="fc497c98-9f49-428f-ad3d-8e961d2548e9" />
   </Folder>
