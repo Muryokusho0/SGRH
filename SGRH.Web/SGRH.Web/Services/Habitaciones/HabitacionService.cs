@@ -9,8 +9,8 @@ namespace SGRH.Web.Services.Habitaciones;
 
 public sealed class HabitacionService : ApiServiceBase, IHabitacionService
 {
-    public HabitacionService(IHttpClientFactory factory, TokenStorageService tokenStorage)
-        : base(factory, tokenStorage) { }
+    public HabitacionService(IHttpClientFactory factory, TokenStorageService tokenStorage, ILogger<HabitacionService> logger)
+        : base(factory, tokenStorage, logger) { }
 
     public async Task<List<HabitacionDisponibleViewModel>> ListarDisponiblesAsync(
         DateTime entrada, DateTime salida,

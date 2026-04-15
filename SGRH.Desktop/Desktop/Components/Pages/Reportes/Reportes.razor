@@ -1,0 +1,115 @@
+﻿@page "/reportes"
+@inject IReporteService ReporteSvc
+
+<div class="pagina-header">
+    <h1>Reportes</h1>
+    <div class="tabs">
+        <button class="@TabCss("ocupacion")" @onclick='() => tabActivo = "ocupacion"'>Ocupación activa</button>
+        <button class="@TabCss("costos")"    @onclick='() => tabActivo = "costos"'>Costos de reservas</button>
+    </div>
+</div>
+
+<AlertaError Mensaje="@error" />
+
+@if (tabActivo == "ocupacion")
+{
+    @if (cargandoOcupacion)
+    {
+        <p class="texto-cargando">Cargando ocupación activa...</p>
+    }
+    else if (!ocupacion.Any())
+    {
+        <p class="texto-vacio">No hay habitaciones ocupadas actualmente.</p>
+    }
+    else
+    {
+        <table class="tabla">
+            <thead>
+                <tr><th>Reserva</th><th>Habitación</th><th>Categoría</th>
+                    <th>Cliente</th><th>Entrada</th><th>Salida</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var o in ocupacion)
+                {
+                    <tr>
+                        <td>#@o.ReservaId</td>
+                        <td>@o.HabitacionCodigo</td>
+                        <td>@o.CategoriaNombre</td>
+                        <td>@o.ClienteNombre</td>
+                        <td>@o.FechaEntrada.ToString("dd/MM/yyyy")</td>
+                        <td>@o.FechaSalida.ToString("dd/MM/yyyy")</td>
+                        <td><span class="badge badge-verde">@o.EstadoReserva</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+else
+{
+    <div class="filtros">
+        <label>Desde: <input type="date" @bind="desde" class="input input-sm" /></label>
+        <label>Hasta: <input type="date" @bind="hasta" class="input input-sm" /></label>
+        <button class="btn-secundario btn-sm" @onclick="CargarCostos">Filtrar</button>
+    </div>
+
+    @if (cargandoCostos)
+    {
+        <p class="texto-cargando">Cargando costos...</p>
+    }
+    else if (!costos.Any())
+    {
+        <p class="texto-vacio">No se encontraron reservas en el rango seleccionado.</p>
+    }
+    else
+    {
+        <p class="resumen-total">Total del período: <strong>$@costos.Sum(c => c.Total).ToString("N2")</strong></p>
+        <table class="tabla">
+            <thead>
+                <tr><th>Reserva</th><th>Cliente</th><th>Entrada</th>
+                    <th>Salida</th><th>Habitaciones</th><th>Servicios</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var c in costos)
+                {
+                    <tr>
+                        <td>#@c.ReservaId</td>
+                        <td>@c.ClienteNombre</td>
+                        <td>@c.FechaEntrada.ToString("dd/MM/yyyy")</td>
+                        <td>@c.FechaSalida.ToString("dd/MM/yyyy")</td>
+                        <td>$@c.TotalHabitaciones.ToString("N2")</td>
+                        <td>$@c.TotalServicios.ToString("N2")</td>
+                        <td><strong>$@c.Total.ToString("N2")</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private string tabActivo = "ocupacion";
+    private List<OcupacionActiva> ocupacion = [];
+    private List<ReservaCosto> costos = [];
+    private DateTime? desde, hasta;
+    private string? error;
+    private bool cargandoOcupacion = true, cargandoCostos = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { ocupacion = await ReporteSvc.OcupacionActivaAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargandoOcupacion = false; }
+    }
+
+    private async Task CargarCostos()
+    {
+        cargandoCostos = true; error = null;
+        try { costos = await ReporteSvc.CostosAsync(desde, hasta); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargandoCostos = false; }
+    }
+
+    private string TabCss(string tab)
+        => tab == tabActivo ? "tab tab-activo" : "tab";
+}

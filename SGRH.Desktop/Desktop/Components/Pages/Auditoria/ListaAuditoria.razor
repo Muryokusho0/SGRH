@@ -1,0 +1,68 @@
+﻿@page "/auditoria"
+@inject TokenStorageService Sesion
+@inject NavigationManager Nav
+@inject IHttpClientFactory Factory
+@using System.Net.Http.Json
+@using System.Text.Json
+@using System.Net.Http.Headers
+
+@if (!Sesion.EsAdmin()) { Nav.NavigateTo("/"); return; }
+
+<div class="pagina-header">
+    <h1>Auditoría</h1>
+    <button class="btn-secundario btn-sm" @onclick="Cargar">↻ Actualizar</button>
+</div>
+
+<AlertaError Mensaje="@error" />
+
+@if (cargando) { <p class="texto-cargando">Cargando registros...</p> }
+else if (!registros.Any()) { <p class="texto-vacio">No hay registros de auditoría.</p> }
+else
+{
+    <table class="tabla">
+        <thead>
+            <tr><th>ID</th><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Entidad</th><th>Entidad ID</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var a in registros)
+            {
+                <tr>
+                    <td>@a.TryGetProperty("auditoriaId", out var id) ? id.GetInt32() : 0</td>
+                    <td>@(a.TryGetProperty("fechaAccion", out var f) ? DateTime.Parse(f.GetString()!).ToString("dd/MM/yyyy HH:mm") : "")</td>
+                    <td>@(a.TryGetProperty("username", out var u) ? u.GetString() : "")</td>
+                    <td>@(a.TryGetProperty("tipoAccion", out var t) ? t.GetString() : "")</td>
+                    <td>@(a.TryGetProperty("entidad", out var e) ? e.GetString() : "")</td>
+                    <td>@(a.TryGetProperty("entidadId", out var eid) ? eid.GetInt32() : 0)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<JsonElement> registros = [];
+    private string? error;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        cargando = true; error = null;
+        try
+        {
+            var client = Factory.CreateClient("SGRH.Api");
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", Sesion.GetToken());
+            var resp = await client.GetAsync("api/auditoria");
+            if (resp.IsSuccessStatusCode)
+            {
+                var json = await resp.Content.ReadFromJsonAsync<JsonElement>();
+                var arr  = json.TryGetProperty("registros", out var r) ? r : json;
+                registros = arr.EnumerateArray().ToList();
+            }
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargando = false; }
+    }
+}

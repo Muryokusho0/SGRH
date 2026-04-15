@@ -25,8 +25,9 @@ public sealed class TemporadaService : ApiServiceBase, ITemporadaService
     public TemporadaService(
         IHttpClientFactory factory,
         TokenStorageService tokenStorage,
-        IMemoryCache cache)
-        : base(factory, tokenStorage)
+        IMemoryCache cache,
+        ILogger<TemporadaService> logger)
+        : base(factory, tokenStorage, logger)
     {
         _cache = cache;
     }

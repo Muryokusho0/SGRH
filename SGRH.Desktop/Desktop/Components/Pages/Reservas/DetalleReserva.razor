@@ -1,0 +1,332 @@
+﻿@page "/reservas/{Id:int}"
+@inject IReservaService ReservaSvc
+@inject IHabitacionService HabitacionSvc
+@inject NavigationManager Nav
+
+<div class="pagina-header">
+    <button class="btn-link" @onclick='() => Nav.NavigateTo("/reservas")'>← Volver</button>
+    <h1>Reserva #@Id</h1>
+</div>
+
+<AlertaError Mensaje="@error" />
+
+@if (cargando)
+{
+    <p class="texto-cargando">Cargando...</p>
+}
+else if (detalle is null)
+{
+    <p class="texto-vacio">Reserva no encontrada.</p>
+}
+else
+{
+    <div class="detalle-grid">
+        <div class="card">
+            <h3>Información general</h3>
+            <p><strong>Cliente:</strong> @detalle.ClienteNombre (#@detalle.ClienteId)</p>
+            <p><strong>Estado:</strong> <span class="badge @BadgeEstado(detalle.Estado)">@detalle.Estado</span></p>
+            <p><strong>Entrada:</strong> @detalle.FechaEntrada.ToString("dd/MM/yyyy")</p>
+            <p><strong>Salida:</strong> @detalle.FechaSalida.ToString("dd/MM/yyyy")</p>
+            <p><strong>Noches:</strong> @detalle.Noches</p>
+            <p><strong>Total:</strong> $@detalle.CostoTotal.ToString("N2")</p>
+        </div>
+
+        @if (detalle.EsModificable)
+        {
+            <div class="card">
+                <h3>Acciones</h3>
+                <div class="acciones-col">
+                    <button class="btn-primario btn-sm" @onclick="() => mostrarCambioFechas = true">
+                        Cambiar fechas
+                    </button>
+                    <button class="btn-verde btn-sm" @onclick="ConfirmarReserva" disabled="@procesando">
+                        Confirmar reserva
+                    </button>
+                    <button class="btn-rojo btn-sm" @onclick="() => mostrarCancelar = true">
+                        Cancelar reserva
+                    </button>
+                </div>
+            </div>
+        }
+        else if (detalle.Estado == "Confirmada")
+        {
+            <div class="card">
+                <h3>Acciones</h3>
+                <div class="acciones-col">
+                    <button class="btn-gris btn-sm" @onclick="FinalizarReserva" disabled="@procesando">
+                        Finalizar reserva
+                    </button>
+                    <button class="btn-rojo btn-sm" @onclick="() => mostrarCancelar = true">
+                        Cancelar reserva
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Habitaciones -->
+    <div class="seccion">
+        <div class="seccion-header">
+            <h3>Habitaciones (@detalle.Habitaciones.Count)</h3>
+            @if (detalle.EsModificable)
+            {
+                <button class="btn-sm btn-secundario"
+                        @onclick="() => mostrarAgregarHab = true">
+                    + Agregar habitación
+                </button>
+            }
+        </div>
+        @if (detalle.Habitaciones.Any())
+        {
+            <table class="tabla">
+                <thead>
+                    <tr><th>N°</th><th>Categoría</th><th>Tarifa/noche</th><th>Subtotal</th>
+                    @if (detalle.EsModificable) { <th></th> }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in detalle.Habitaciones)
+                    {
+                        <tr>
+                            <td>@h.NumeroHabitacion</td>
+                            <td>@h.Categoria</td>
+                            <td>$@h.TarifaAplicada.ToString("N2")</td>
+                            <td>$@((h.TarifaAplicada * detalle.Noches).ToString("N2"))</td>
+                            @if (detalle.EsModificable)
+                            {
+                                <td>
+                                    <button class="btn-link btn-rojo-link"
+                                            @onclick="() => QuitarHabitacion(h.HabitacionId)">
+                                        Quitar
+                                    </button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else { <p class="texto-vacio">Sin habitaciones.</p> }
+    </div>
+
+    <!-- Servicios -->
+    <div class="seccion">
+        <div class="seccion-header">
+            <h3>Servicios adicionales (@detalle.Servicios.Count)</h3>
+            @if (detalle.EsModificable)
+            {
+                <button class="btn-sm btn-secundario"
+                        @onclick="() => mostrarAgregarSvc = true">
+                    + Agregar servicio
+                </button>
+            }
+        </div>
+        @if (detalle.Servicios.Any())
+        {
+            <table class="tabla">
+                <thead><tr><th>Servicio</th><th>Tipo</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th>
+                @if (detalle.EsModificable) { <th></th> }
+                </tr></thead>
+                <tbody>
+                    @foreach (var s in detalle.Servicios)
+                    {
+                        <tr>
+                            <td>@s.Nombre</td>
+                            <td>@s.Tipo</td>
+                            <td>@s.Cantidad</td>
+                            <td>$@s.PrecioUnitario.ToString("N2")</td>
+                            <td>$@s.Subtotal.ToString("N2")</td>
+                            @if (detalle.EsModificable)
+                            {
+                                <td>
+                                    <button class="btn-link btn-rojo-link"
+                                            @onclick="() => QuitarServicio(s.ServicioAdicionalId)">
+                                        Quitar
+                                    </button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else { <p class="texto-vacio">Sin servicios adicionales.</p> }
+    </div>
+
+    <!-- Modales -->
+    @if (mostrarCambioFechas)
+    {
+        <div class="modal-backdrop">
+            <div class="modal">
+                <h3>Cambiar fechas</h3>
+                <div class="campo">
+                    <label>Nueva fecha de entrada</label>
+                    <input type="date" @bind="nuevaEntrada" class="input" />
+                </div>
+                <div class="campo">
+                    <label>Nueva fecha de salida</label>
+                    <input type="date" @bind="nuevaSalida" class="input" />
+                </div>
+                <div class="modal-acciones">
+                    <button class="btn-secundario"
+                            @onclick="() => mostrarCambioFechas = false">
+                        Cancelar
+                    </button>
+                    <button class="btn-primario" @onclick="CambiarFechas" disabled="@procesando">
+                        @(procesando ? "..." : "Guardar")
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (mostrarAgregarHab)
+    {
+        <div class="modal-backdrop">
+            <div class="modal">
+                <h3>Agregar habitación</h3>
+                <div class="campo">
+                    <label>Habitaciones disponibles</label>
+                    <select @bind="habitacionSeleccionada" class="input">
+                        <option value="0">-- Seleccionar --</option>
+                        @foreach (var h in habitacionesDisponibles)
+                        {
+                            <option value="@h.NumeroHabitacion">
+                                @h.NumeroTexto — @h.Categoria — $@h.TarifaPorNoche/noche
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="modal-acciones">
+                    <button class="btn-secundario"
+                            @onclick="() => mostrarAgregarHab = false">
+                        Cancelar
+                    </button>
+                    <button class="btn-primario" @onclick="AgregarHabitacion"
+                            disabled="@(procesando || habitacionSeleccionada == 0)">
+                        @(procesando ? "..." : "Agregar")
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <ConfirmDialog Visible="@mostrarCancelar"
+                   Titulo="Cancelar reserva"
+                   Mensaje="¿Estás seguro de que deseas cancelar esta reserva? Esta acción no se puede deshacer."
+                   TextoConfirmar="Sí, cancelar"
+                   CssConfirmar="btn-rojo"
+                   Procesando="@procesando"
+                   OnConfirmar="CancelarReserva"
+                   OnCancelar="@(() => mostrarCancelar = false)" />
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private ReservaDetalle? detalle;
+    private List<HabitacionDisponible> habitacionesDisponibles = [];
+    private string? error;
+    private bool cargando = true, procesando = false;
+    private bool mostrarCambioFechas, mostrarCancelar, mostrarAgregarHab, mostrarAgregarSvc;
+    private DateTime nuevaEntrada, nuevaSalida;
+    private int habitacionSeleccionada;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDetalle();
+        cargando = false;
+    }
+
+    private async Task CargarDetalle()
+    {
+        try
+        {
+            detalle = await ReservaSvc.ObtenerDetalleAsync(Id);
+            if (detalle is not null)
+            {
+                nuevaEntrada = detalle.FechaEntrada;
+                nuevaSalida  = detalle.FechaSalida;
+                if (detalle.EsModificable)
+                    habitacionesDisponibles = await HabitacionSvc
+                        .ListarDisponiblesAsync(detalle.FechaEntrada, detalle.FechaSalida);
+            }
+        }
+        catch (Exception ex) { error = ex.Message; }
+    }
+
+    private async Task ConfirmarReserva()
+    {
+        procesando = true; error = null;
+        try { await ReservaSvc.ConfirmarAsync(Id); await CargarDetalle(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private async Task CancelarReserva()
+    {
+        procesando = true; mostrarCancelar = false; error = null;
+        try { await ReservaSvc.CancelarAsync(Id); await CargarDetalle(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private async Task FinalizarReserva()
+    {
+        procesando = true; error = null;
+        try { await ReservaSvc.FinalizarAsync(Id); await CargarDetalle(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private async Task CambiarFechas()
+    {
+        procesando = true; error = null;
+        try
+        {
+            await ReservaSvc.CambiarFechasAsync(Id, nuevaEntrada, nuevaSalida);
+            mostrarCambioFechas = false;
+            await CargarDetalle();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private async Task AgregarHabitacion()
+    {
+        if (habitacionSeleccionada == 0) return;
+        procesando = true; error = null;
+        try
+        {
+            await ReservaSvc.AgregarHabitacionAsync(Id, habitacionSeleccionada);
+            mostrarAgregarHab = false;
+            habitacionSeleccionada = 0;
+            await CargarDetalle();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private async Task QuitarHabitacion(int habitacionId)
+    {
+        procesando = true; error = null;
+        try { await ReservaSvc.QuitarHabitacionAsync(Id, habitacionId); await CargarDetalle(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private async Task QuitarServicio(int servicioId)
+    {
+        procesando = true; error = null;
+        try { await ReservaSvc.QuitarServicioAsync(Id, servicioId); await CargarDetalle(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private static string BadgeEstado(string e) => e switch
+    {
+        "Confirmada" => "badge-verde", "Pendiente" => "badge-amarillo",
+        "Cancelada"  => "badge-rojo",  "Finalizada" => "badge-gris",
+        _ => ""
+    };
+}

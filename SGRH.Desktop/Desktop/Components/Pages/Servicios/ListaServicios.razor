@@ -1,0 +1,54 @@
+﻿@page "/servicios"
+@using Desktop.Services.Servicios
+@inject Desktop.Services.Servicios.ServiciosService SvcService
+@using System.Text.Json
+
+<div class="pagina-header"><h1>Servicios adicionales</h1></div>
+<AlertaError Mensaje="@error" />
+
+@if (cargando) { <p class="texto-cargando">Cargando...</p> }
+else if (!servicios.Any()) { <p class="texto-vacio">No hay servicios registrados.</p> }
+else
+{
+    <table class="tabla">
+        <thead><tr><th>#</th><th>Nombre</th><th>Tipo</th><th>Disponibilidad</th></tr></thead>
+        <tbody>
+            @foreach (var s in servicios)
+            {
+                <tr>
+                    <td>@s.ServicioAdicionalId</td>
+                    <td>@s.NombreServicio</td>
+                    <td>@s.TipoServicio</td>
+                    <td>@(s.AplicaTodasTemporadas ? "Todas las temporadas" : "Temporadas específicas")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ServicioResumen> servicios = [];
+    private string? error;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var json = await SvcService.ListarAsync();
+            if (json.ValueKind != JsonValueKind.Undefined)
+            {
+                var arr = json.TryGetProperty("servicios", out var s) ? s : json;
+                servicios = arr.EnumerateArray().Select(x => new ServicioResumen
+                {
+                    ServicioAdicionalId   = x.GetProperty("servicioAdicionalId").GetInt32(),
+                    NombreServicio        = x.GetProperty("nombreServicio").GetString()!,
+                    TipoServicio          = x.GetProperty("tipoServicio").GetString()!,
+                    AplicaTodasTemporadas = x.TryGetProperty("aplicaTodasTemporadas", out var a) && a.GetBoolean(),
+                }).ToList();
+            }
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargando = false; }
+    }
+}

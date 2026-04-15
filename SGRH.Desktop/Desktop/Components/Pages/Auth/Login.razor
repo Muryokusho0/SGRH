@@ -1,0 +1,59 @@
+﻿@page "/login"
+@inject IAuthService AuthSvc
+@inject TokenStorageService Sesion
+@inject NavigationManager Nav
+
+<EditForm Model="request" OnValidSubmit="IniciarSesion">
+    <h2 class="auth-form-titulo">Iniciar sesión</h2>
+
+    <AlertaError Mensaje="@error" />
+
+    <div class="campo">
+        <label>Correo electrónico</label>
+        <input @bind="request.Email" type="email"
+               placeholder="admin@hotel.com"
+               class="input" disabled="@cargando" />
+    </div>
+    <div class="campo">
+        <label>Contraseña</label>
+        <input @bind="request.Password" type="password"
+               placeholder="••••••••"
+               class="input" disabled="@cargando" />
+    </div>
+
+    <SpinnerButton TextoNormal="Entrar"
+                   TextoCargando="Verificando..."
+                   Cargando="@cargando"
+                   OnClick="IniciarSesion" />
+</EditForm>
+
+@code {
+    private readonly LoginRequest request = new();
+    private string? error;
+    private bool cargando;
+
+    protected override void OnInitialized()
+    {
+        if (Sesion.EstaAutenticado())
+            Nav.NavigateTo("/dashboard", forceLoad: false);
+    }
+
+    private async Task IniciarSesion()
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) ||
+            string.IsNullOrWhiteSpace(request.Password))
+        {
+            error = "Ingresa tu correo y contraseña.";
+            return;
+        }
+        error = null;
+        cargando = true;
+        try
+        {
+            await AuthSvc.LoginAsync(request);
+            Nav.NavigateTo("/dashboard", forceLoad: true);
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargando = false; }
+    }
+}

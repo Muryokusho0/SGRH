@@ -1,0 +1,57 @@
+﻿@page "/temporadas"
+@inject Desktop.Services.Temporadas.TemporadasService TempSvc
+@using System.Text.Json
+
+<div class="pagina-header"><h1>Temporadas</h1></div>
+<AlertaError Mensaje="@error" />
+
+@if (cargando) { <p class="texto-cargando">Cargando...</p> }
+else
+{
+    <table class="tabla">
+        <thead><tr><th>#</th><th>Nombre</th><th>Inicio</th><th>Fin</th><th>Estado</th></tr></thead>
+        <tbody>
+            @foreach (var t in temporadas)
+            {
+                <tr>
+                    <td>@t.TemporadaId</td>
+                    <td>@t.NombreTemporada</td>
+                    <td>@t.FechaInicio.ToString("dd/MM/yyyy")</td>
+                    <td>@t.FechaFin.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        <span class="badge @(t.EsActual ? "badge-verde" : "badge-gris")">
+                            @(t.EsActual ? "Activa" : "Inactiva")
+                        </span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Desktop.Models.Temporadas.TemporadaResumen> temporadas = [];
+    private string? error;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var json = await TempSvc.ListarAsync();
+            if (json.ValueKind != JsonValueKind.Undefined)
+            {
+                var arr = json.TryGetProperty("temporadas", out var s) ? s : json;
+                temporadas = arr.EnumerateArray().Select(x => new Desktop.Models.Temporadas.TemporadaResumen
+                {
+                    TemporadaId     = x.GetProperty("temporadaId").GetInt32(),
+                    NombreTemporada = x.GetProperty("nombreTemporada").GetString()!,
+                    FechaInicio     = x.GetProperty("fechaInicio").GetDateTime(),
+                    FechaFin        = x.GetProperty("fechaFin").GetDateTime(),
+                }).ToList();
+            }
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargando = false; }
+    }
+}

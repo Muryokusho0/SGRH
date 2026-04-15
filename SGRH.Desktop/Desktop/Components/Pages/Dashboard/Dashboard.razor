@@ -1,0 +1,119 @@
+﻿@page "/dashboard"
+@page "/"
+@inject TokenStorageService Sesion
+@inject IReservaService ReservaSvc
+@inject IHabitacionService HabitacionSvc
+@inject NavigationManager Nav
+
+@if (!Sesion.EstaAutenticado())
+{
+    Nav.NavigateTo("/login", forceLoad: false);
+    return;
+}
+
+<div class="pagina-header">
+    <h1>Dashboard</h1>
+    <p>Bienvenido, <strong>@Sesion.GetUsername()</strong></p>
+</div>
+
+@if (cargando)
+{
+    <p class="texto-cargando">Cargando resumen...</p>
+}
+else
+{
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-icono">📋</span>
+            <p class="stat-valor">@totalReservas</p>
+            <p class="stat-etiqueta">Reservas totales</p>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icono">✅</span>
+            <p class="stat-valor">@reservasConfirmadas</p>
+            <p class="stat-etiqueta">Confirmadas</p>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icono">⏳</span>
+            <p class="stat-valor">@reservasPendientes</p>
+            <p class="stat-etiqueta">Pendientes</p>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icono">🛏️</span>
+            <p class="stat-valor">@habitacionesOcupadas</p>
+            <p class="stat-etiqueta">Habitaciones ocupadas</p>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icono">✨</span>
+            <p class="stat-valor">@habitacionesDisponibles</p>
+            <p class="stat-etiqueta">Disponibles</p>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icono">🔧</span>
+            <p class="stat-valor">@habitacionesMantenimiento</p>
+            <p class="stat-etiqueta">En mantenimiento</p>
+        </div>
+    </div>
+
+    @if (reservasRecientes.Any())
+    {
+        <div class="seccion">
+            <h2>Reservas recientes</h2>
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>#</th><th>Cliente</th><th>Entrada</th>
+                        <th>Salida</th><th>Estado</th><th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in reservasRecientes)
+                    {
+                        <tr>
+                            <td>@r.ReservaId</td>
+                            <td>@r.ClienteNombre</td>
+                            <td>@r.FechaEntrada.ToString("dd/MM/yyyy")</td>
+                            <td>@r.FechaSalida.ToString("dd/MM/yyyy")</td>
+                            <td><span class="badge @BadgeEstado(r.Estado)">@r.Estado</span></td>
+                            <td>$@r.CostoTotal.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private bool cargando = true;
+    private int totalReservas, reservasConfirmadas, reservasPendientes;
+    private int habitacionesOcupadas, habitacionesDisponibles, habitacionesMantenimiento;
+    private List<ReservaResumen> reservasRecientes = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sesion.EstaAutenticado()) return;
+        try
+        {
+            var reservas     = await ReservaSvc.ListarAsync();
+            var habitaciones = await HabitacionSvc.ListarAsync();
+            totalReservas             = reservas.Count;
+            reservasConfirmadas       = reservas.Count(r => r.Estado == "Confirmada");
+            reservasPendientes        = reservas.Count(r => r.Estado == "Pendiente");
+            habitacionesOcupadas      = habitaciones.Count(h => h.EstadoActual == "Ocupada");
+            habitacionesDisponibles   = habitaciones.Count(h => h.EstadoActual == "Disponible");
+            habitacionesMantenimiento = habitaciones.Count(h => h.EstadoActual == "Mantenimiento");
+            reservasRecientes         = reservas.Take(5).ToList();
+        }
+        finally { cargando = false; }
+    }
+
+    private static string BadgeEstado(string e) => e switch
+    {
+        "Confirmada" => "badge-verde",
+        "Pendiente"  => "badge-amarillo",
+        "Cancelada"  => "badge-rojo",
+        "Finalizada" => "badge-gris",
+        _ => ""
+    };
+}

@@ -9,6 +9,9 @@
     <Project Path="SGRH.Auth/SGRH.Auth.csproj" />
     <Project Path="SGRH.Domain/SGRH.Domain.csproj" />
   </Folder>
+  <Folder Name="/Desktop/">
+    <Project Path="SGRH.Desktop/Desktop/Desktop.csproj" Id="e5c0d751-1c58-44bd-bce3-ab37556b7096" />
+  </Folder>
   <Folder Name="/docs/" />
   <Folder Name="/docs/DecisionRecords/">
     <File Path="../../../../ADR-0001-Database-Engine-Change-MySQL-to-SQLServer.txt" />

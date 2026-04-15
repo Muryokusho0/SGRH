@@ -11,8 +11,8 @@ namespace SGRH.Web.Services.Reservas;
 
 public sealed class ReservaService : ApiServiceBase, IReservaService
 {
-    public ReservaService(IHttpClientFactory factory, TokenStorageService tokenStorage)
-        : base(factory, tokenStorage) { }
+    public ReservaService(IHttpClientFactory factory, TokenStorageService tokenStorage, ILogger<ReservaService> logger)
+        : base(factory, tokenStorage, logger) { }
 
     private static StringContent EmptyJsonContent()
         => new("{}", Encoding.UTF8, "application/json");

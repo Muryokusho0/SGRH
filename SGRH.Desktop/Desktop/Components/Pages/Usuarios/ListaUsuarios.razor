@@ -1,0 +1,130 @@
+﻿@page "/usuarios"
+@inject TokenStorageService Sesion
+@inject IUsuarioService UsuarioSvc
+@inject NavigationManager Nav
+
+@if (!Sesion.EsAdmin()) { Nav.NavigateTo("/"); return; }
+
+<div class="pagina-header">
+    <h1>Usuarios</h1>
+    <button class="btn-primario btn-sm" @onclick="() => mostrarCrear = true">+ Nuevo usuario</button>
+</div>
+
+<AlertaError Mensaje="@error" />
+<AlertaError Mensaje="@exito" EsError="false" />
+
+@if (cargando)
+{
+    <p class="texto-cargando">Cargando...</p>
+}
+else
+{
+    <table class="tabla">
+        <thead>
+            <tr><th>ID</th><th>Username</th><th>Rol</th><th>Estado</th><th>Creado</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var u in usuarios)
+            {
+                <tr>
+                    <td>@u.UsuarioId</td>
+                    <td>@u.Username</td>
+                    <td><span class="badge @(u.Rol == "ADMIN" ? "badge-morado" : "badge-azul")">@u.Rol</span></td>
+                    <td><span class="badge @(u.Activo ? "badge-verde" : "badge-gris")">
+                        @(u.Activo ? "Activo" : "Inactivo")</span></td>
+                    <td>@u.CreatedAt.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        @if (u.Activo)
+                        {
+                            <button class="btn-link btn-rojo-link"
+                                    @onclick="() => Desactivar(u.UsuarioId)"
+                                    disabled="@procesando">
+                                Desactivar
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn-link btn-verde-link"
+                                    @onclick="() => Activar(u.UsuarioId)"
+                                    disabled="@procesando">
+                                Activar
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (mostrarCrear)
+{
+    <div class="modal-backdrop">
+        <div class="modal">
+            <h3>Nuevo usuario</h3>
+            <div class="campo"><label>Email</label>
+                <input @bind="form.Username" type="email" class="input" /></div>
+            <div class="campo"><label>Contraseña</label>
+                <input @bind="form.Password" type="password" class="input" /></div>
+            <div class="campo"><label>Confirmar contraseña</label>
+                <input @bind="form.Confirmar" type="password" class="input" /></div>
+            <div class="campo"><label>Rol</label>
+                <select @bind="form.Rol" class="input">
+                    <option value="RECEPCIONISTA">Recepcionista</option>
+                    <option value="ADMIN">Administrador</option>
+                </select>
+            </div>
+            <AlertaError Mensaje="@errorModal" />
+            <div class="modal-acciones">
+                <button class="btn-secundario" @onclick="() => mostrarCrear = false">Cancelar</button>
+                <button class="btn-primario" @onclick="CrearUsuario" disabled="@procesando">
+                    @(procesando ? "..." : "Crear")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UsuarioResumen> usuarios = [];
+    private readonly CrearUsuarioRequest form = new();
+    private string? error, exito, errorModal;
+    private bool cargando = true, procesando = false, mostrarCrear = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { usuarios = await UsuarioSvc.ListarAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargando = false; }
+    }
+
+    private async Task CrearUsuario()
+    {
+        procesando = true; errorModal = null;
+        try
+        {
+            await UsuarioSvc.CrearAsync(form);
+            mostrarCrear = false;
+            exito = "Usuario creado correctamente.";
+            usuarios = await UsuarioSvc.ListarAsync();
+        }
+        catch (Exception ex) { errorModal = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private async Task Desactivar(int id)
+    {
+        procesando = true; error = null;
+        try { await UsuarioSvc.DesactivarAsync(id); usuarios = await UsuarioSvc.ListarAsync(); exito = "Usuario desactivado."; }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private async Task Activar(int id)
+    {
+        procesando = true; error = null;
+        try { await UsuarioSvc.ActivarAsync(id); usuarios = await UsuarioSvc.ListarAsync(); exito = "Usuario activado."; }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+}

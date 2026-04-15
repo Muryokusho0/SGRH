@@ -9,8 +9,8 @@ namespace SGRH.Web.Services.Servicios;
 
 public sealed class ServicioService : ApiServiceBase, IServicioService
 {
-    public ServicioService(IHttpClientFactory factory, TokenStorageService tokenStorage)
-        : base(factory, tokenStorage) { }
+    public ServicioService(IHttpClientFactory factory, TokenStorageService tokenStorage, ILogger<ServicioService> logger)
+        : base(factory, tokenStorage, logger) { }
 
     /// <inheritdoc />
     public async Task<List<ServicioViewModel>> ListarAsync(

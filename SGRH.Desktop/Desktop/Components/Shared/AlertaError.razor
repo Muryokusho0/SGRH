@@ -1,0 +1,10 @@
+﻿@if (!string.IsNullOrEmpty(Mensaje))
+{
+    <div class="alerta @(EsError ? "alerta-error" : "alerta-exito")">
+        <span>@(EsError ? "⚠️" : "✅")</span> @Mensaje
+    </div>
+}
+@code {
+    [Parameter] public string? Mensaje { get; set; }
+    [Parameter] public bool EsError { get; set; } = true;
+}

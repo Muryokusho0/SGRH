@@ -16,8 +16,9 @@ public sealed class AuthService : ApiServiceBase, IAuthService
     public AuthService(
         IHttpClientFactory factory,
         TokenStorageService tokenStorage,
-        AuthenticationStateProvider authStateProvider)
-        : base(factory, tokenStorage)
+        AuthenticationStateProvider authStateProvider,
+        ILogger<AuthService> logger)
+        : base(factory, tokenStorage, logger)
     {
         _authStateProvider = authStateProvider;
     }

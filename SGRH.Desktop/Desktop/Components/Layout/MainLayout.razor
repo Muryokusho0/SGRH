@@ -1,0 +1,89 @@
+﻿@inherits LayoutComponentBase
+@inject TokenStorageService Sesion
+@inject NavigationManager Nav
+
+@if (!Sesion.EstaAutenticado())
+{
+    <div class="auth-contenedor">
+        <div class="auth-panel">
+            <div class="auth-logo">
+                <span class="auth-logo-icono">🏨</span>
+                <h1 class="auth-logo-titulo">SGRH</h1>
+                <p class="auth-logo-subtitulo">Panel Administrativo</p>
+            </div>
+            @Body
+        </div>
+    </div>
+}
+else
+{
+    <div class="app-contenedor">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-icono">🏨</span>
+                <div>
+                    <p class="sidebar-titulo">SGRH</p>
+                    <p class="sidebar-rol">@Sesion.GetRol()</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <p class="nav-seccion">General</p>
+                <NavLink class="nav-item" href="/" Match="NavLinkMatch.All">
+                    <span>📊</span> Dashboard
+                </NavLink>
+                <NavLink class="nav-item" href="/reservas">
+                    <span>📋</span> Reservas
+                </NavLink>
+                <NavLink class="nav-item" href="/habitaciones">
+                    <span>🛏️</span> Habitaciones
+                </NavLink>
+                <NavLink class="nav-item" href="/clientes">
+                    <span>👥</span> Clientes
+                </NavLink>
+                <NavLink class="nav-item" href="/servicios">
+                    <span>🛎️</span> Servicios
+                </NavLink>
+                <NavLink class="nav-item" href="/temporadas">
+                    <span>📅</span> Temporadas
+                </NavLink>
+                <NavLink class="nav-item" href="/reportes">
+                    <span>📈</span> Reportes
+                </NavLink>
+
+                @if (Sesion.EsAdmin())
+                {
+                    <p class="nav-seccion">Administración</p>
+                    <NavLink class="nav-item" href="/categorias">
+                        <span>🏷️</span> Categorías
+                    </NavLink>
+                    <NavLink class="nav-item" href="/usuarios">
+                        <span>🔐</span> Usuarios
+                    </NavLink>
+                    <NavLink class="nav-item" href="/auditoria">
+                        <span>🔍</span> Auditoría
+                    </NavLink>
+                }
+            </nav>
+
+            <div class="sidebar-footer">
+                <p class="sidebar-usuario">👤 @Sesion.GetUsername()</p>
+                <button class="btn-cerrar-sesion" @onclick="CerrarSesion">
+                    Cerrar sesión
+                </button>
+            </div>
+        </aside>
+
+        <main class="contenido-principal">
+            @Body
+        </main>
+    </div>
+}
+
+@code {
+    private void CerrarSesion()
+    {
+        Sesion.LimpiarSesion();
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+}

@@ -1,0 +1,88 @@
+﻿@page "/reservas"
+@inject IReservaService ReservaSvc
+@inject NavigationManager Nav
+
+<div class="pagina-header">
+    <h1>Reservas</h1>
+    <button class="btn-primario btn-sm" @onclick='() => Nav.NavigateTo("/reservas/nueva")'>
+        + Nueva reserva
+    </button>
+</div>
+
+<AlertaError Mensaje="@error" />
+
+<div class="filtros">
+    <input @bind="filtroEstado" @bind:event="oninput" placeholder="Filtrar por estado..."
+           class="input input-sm" />
+    <input @bind="filtroCliente" @bind:event="oninput" placeholder="Filtrar por cliente..."
+           class="input input-sm" />
+</div>
+
+@if (cargando)
+{
+    <p class="texto-cargando">Cargando reservas...</p>
+}
+else if (!ReservasFiltradas.Any())
+{
+    <p class="texto-vacio">No se encontraron reservas.</p>
+}
+else
+{
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>#</th><th>Cliente</th><th>Entrada</th>
+                <th>Salida</th><th>Noches</th><th>Estado</th>
+                <th>Total</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in ReservasFiltradas)
+            {
+                <tr>
+                    <td>@r.ReservaId</td>
+                    <td>@r.ClienteNombre</td>
+                    <td>@r.FechaEntrada.ToString("dd/MM/yyyy")</td>
+                    <td>@r.FechaSalida.ToString("dd/MM/yyyy")</td>
+                    <td>@r.Noches</td>
+                    <td><span class="badge @BadgeEstado(r.Estado)">@r.Estado</span></td>
+                    <td>$@r.CostoTotal.ToString("N2")</td>
+                    <td>
+                        <button class="btn-link"
+                                @onclick='() => Nav.NavigateTo($"/reservas/{r.ReservaId}")'>
+                            Ver
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ReservaResumen> reservas = [];
+    private string filtroEstado = "", filtroCliente = "";
+    private string? error;
+    private bool cargando = true;
+
+    private IEnumerable<ReservaResumen> ReservasFiltradas =>
+        reservas.Where(r =>
+            (string.IsNullOrEmpty(filtroEstado)  || r.Estado.Contains(filtroEstado, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(filtroCliente) || r.ClienteNombre.Contains(filtroCliente, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { reservas = await ReservaSvc.ListarAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargando = false; }
+    }
+
+    private static string BadgeEstado(string e) => e switch
+    {
+        "Confirmada" => "badge-verde",
+        "Pendiente"  => "badge-amarillo",
+        "Cancelada"  => "badge-rojo",
+        "Finalizada" => "badge-gris",
+        _ => ""
+    };
+}

@@ -1,0 +1,58 @@
+﻿@page "/categorias"
+@inject TokenStorageService Sesion
+@inject Desktop.Services.Categorias.CategoriasService CatSvc
+@inject NavigationManager Nav
+@using System.Text.Json
+
+@if (!Sesion.EsAdmin()) { Nav.NavigateTo("/"); return; }
+
+<div class="pagina-header"><h1>Categorías de habitación</h1></div>
+<AlertaError Mensaje="@error" />
+
+@if (cargando) { <p class="texto-cargando">Cargando...</p> }
+else
+{
+    <table class="tabla">
+        <thead><tr><th>#</th><th>Nombre</th><th>Capacidad</th><th>Precio base</th><th>Descripción</th></tr></thead>
+        <tbody>
+            @foreach (var c in categorias)
+            {
+                <tr>
+                    <td>@c.CategoriaHabitacionId</td>
+                    <td>@c.NombreCategoria</td>
+                    <td>@c.Capacidad personas</td>
+                    <td>$@c.PrecioBase.ToString("N2")</td>
+                    <td>@c.Descripcion</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Desktop.Models.Categorias.CategoriaResumen> categorias = [];
+    private string? error;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var json = await CatSvc.ListarAsync();
+            if (json.ValueKind != JsonValueKind.Undefined)
+            {
+                var arr = json.TryGetProperty("categorias", out var s) ? s : json;
+                categorias = arr.EnumerateArray().Select(x => new Desktop.Models.Categorias.CategoriaResumen
+                {
+                    CategoriaHabitacionId = x.GetProperty("categoriaHabitacionId").GetInt32(),
+                    NombreCategoria       = x.GetProperty("nombreCategoria").GetString()!,
+                    Capacidad             = x.TryGetProperty("capacidad", out var cap) ? cap.GetInt32() : 0,
+                    PrecioBase            = x.TryGetProperty("precioBase", out var p) ? p.GetDecimal() : 0m,
+                    Descripcion           = x.TryGetProperty("descripcion", out var d) ? d.GetString()! : "",
+                }).ToList();
+            }
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargando = false; }
+    }
+}

@@ -1,0 +1,27 @@
+﻿@if (Visible)
+{
+    <div class="modal-backdrop">
+        <div class="modal">
+            <h3 class="modal-titulo">@Titulo</h3>
+            <p class="modal-cuerpo">@Mensaje</p>
+            <div class="modal-acciones">
+                <button class="btn-secundario" @onclick="Cancelar">Cancelar</button>
+                <button class="@CssConfirmar" @onclick="Confirmar" disabled="@Procesando">
+                    @(Procesando ? "..." : TextoConfirmar)
+                </button>
+            </div>
+        </div>
+    </div>
+}
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public bool Procesando { get; set; }
+    [Parameter] public string Titulo { get; set; } = "¿Confirmar?";
+    [Parameter] public string Mensaje { get; set; } = "¿Deseas continuar?";
+    [Parameter] public string TextoConfirmar { get; set; } = "Confirmar";
+    [Parameter] public string CssConfirmar { get; set; } = "btn-primario";
+    [Parameter] public EventCallback OnConfirmar { get; set; }
+    [Parameter] public EventCallback OnCancelar { get; set; }
+    private async Task Confirmar() => await OnConfirmar.InvokeAsync();
+    private async Task Cancelar() => await OnCancelar.InvokeAsync();
+}

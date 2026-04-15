@@ -1,0 +1,106 @@
+﻿@page "/clientes"
+@inject IClienteService ClienteSvc
+
+<div class="pagina-header">
+    <h1>Clientes</h1>
+    <button class="btn-primario btn-sm" @onclick="() => mostrarCrear = true">+ Nuevo cliente</button>
+</div>
+
+<AlertaError Mensaje="@error" />
+<AlertaError Mensaje="@exito" EsError="false" />
+
+<div class="filtros">
+    <input @bind="filtro" @bind:event="oninput"
+           placeholder="Buscar por nombre..." class="input input-sm" />
+    <button class="btn-secundario btn-sm" @onclick="Buscar">Buscar</button>
+</div>
+
+@if (cargando)
+{
+    <p class="texto-cargando">Cargando...</p>
+}
+else if (!clientes.Any())
+{
+    <p class="texto-vacio">No se encontraron clientes.</p>
+}
+else
+{
+    <table class="tabla">
+        <thead>
+            <tr><th>ID</th><th>Cédula</th><th>Nombre</th><th>Email</th><th>Teléfono</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var c in clientes)
+            {
+                <tr>
+                    <td>@c.ClienteId</td>
+                    <td>@c.NationalId</td>
+                    <td>@c.NombreCompleto</td>
+                    <td>@c.Email</td>
+                    <td>@c.Telefono</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (mostrarCrear)
+{
+    <div class="modal-backdrop">
+        <div class="modal">
+            <h3>Nuevo cliente</h3>
+            <div class="campo"><label>Cédula / Pasaporte</label>
+                <input @bind="form.NationalId" class="input" /></div>
+            <div class="campo"><label>Nombre</label>
+                <input @bind="form.NombreCliente" class="input" /></div>
+            <div class="campo"><label>Apellido</label>
+                <input @bind="form.ApellidoCliente" class="input" /></div>
+            <div class="campo"><label>Email</label>
+                <input @bind="form.Email" type="email" class="input" /></div>
+            <div class="campo"><label>Teléfono</label>
+                <input @bind="form.Telefono" class="input" /></div>
+            <AlertaError Mensaje="@errorModal" />
+            <div class="modal-acciones">
+                <button class="btn-secundario" @onclick="() => mostrarCrear = false">Cancelar</button>
+                <button class="btn-primario" @onclick="CrearCliente" disabled="@procesando">
+                    @(procesando ? "..." : "Crear")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ClienteResumen> clientes = [];
+    private readonly CrearClienteRequest form = new();
+    private string filtro = "", error = "", exito = "", errorModal = "";
+    private bool cargando = true, procesando = false, mostrarCrear = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Buscar();
+        cargando = false;
+    }
+
+    private async Task Buscar()
+    {
+        cargando = true; error = "";
+        try { clientes = await ClienteSvc.ListarAsync(filtro); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargando = false; }
+    }
+
+    private async Task CrearCliente()
+    {
+        procesando = true; errorModal = "";
+        try
+        {
+            await ClienteSvc.CrearAsync(form);
+            mostrarCrear = false;
+            exito = "Cliente creado correctamente.";
+            await Buscar();
+        }
+        catch (Exception ex) { errorModal = ex.Message; }
+        finally { procesando = false; }
+    }
+}

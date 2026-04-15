@@ -1,0 +1,101 @@
+﻿@page "/habitaciones"
+@inject IHabitacionService HabitacionSvc
+
+<div class="pagina-header">
+    <h1>Habitaciones</h1>
+</div>
+
+<AlertaError Mensaje="@error" />
+<AlertaError Mensaje="@exito" EsError="false" />
+
+<div class="filtros">
+    <input @bind="filtroEstado" @bind:event="oninput"
+           placeholder="Filtrar por estado..." class="input input-sm" />
+    <input @bind="filtroCategoria" @bind:event="oninput"
+           placeholder="Filtrar por categoría..." class="input input-sm" />
+</div>
+
+@if (cargando)
+{
+    <p class="texto-cargando">Cargando habitaciones...</p>
+}
+else
+{
+    <table class="tabla">
+        <thead>
+            <tr><th>N°</th><th>Piso</th><th>Categoría</th><th>Estado</th><th>Cambiar estado</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var h in HabitacionesFiltradas)
+            {
+                <tr>
+                    <td>@h.NumeroTexto</td>
+                    <td>@h.PisoTexto</td>
+                    <td>@h.Categoria</td>
+                    <td><span class="badge @BadgeEstado(h.EstadoActual)">@h.EstadoActual</span></td>
+                    <td>
+                    <select class="input input-sm" @onchange="e => CambiarEstado(h.HabitacionId, e.Value?.ToString() ?? string.Empty)"
+                            disabled="@procesando">
+                            <option value="">-- Cambiar --</option>
+                            @foreach (var s in EstadosPermitidos(h.EstadoActual))
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        </select>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<HabitacionResumen> habitaciones = [];
+    private string filtroEstado = "", filtroCategoria = "";
+    private string? error, exito;
+    private bool cargando = true, procesando = false;
+
+    private IEnumerable<HabitacionResumen> HabitacionesFiltradas =>
+        habitaciones.Where(h =>
+            (string.IsNullOrEmpty(filtroEstado)    || h.EstadoActual.Contains(filtroEstado, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(filtroCategoria) || h.Categoria.Contains(filtroCategoria, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { habitaciones = await HabitacionSvc.ListarAsync(); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { cargando = false; }
+    }
+
+    private async Task CambiarEstado(int id, string nuevoEstado)
+    {
+        if (string.IsNullOrEmpty(nuevoEstado)) return;
+        procesando = true; error = null; exito = null;
+        try
+        {
+            await HabitacionSvc.CambiarEstadoAsync(id, nuevoEstado);
+            habitaciones = await HabitacionSvc.ListarAsync();
+            exito = $"Estado actualizado a '{nuevoEstado}' correctamente.";
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { procesando = false; }
+    }
+
+    private static string[] EstadosPermitidos(string estadoActual) => estadoActual switch
+    {
+        "Disponible"   => ["Ocupada", "Mantenimiento", "Limpieza"],
+        "Ocupada"      => ["Disponible", "Limpieza"],
+        "Mantenimiento"=> ["Disponible"],
+        "Limpieza"     => ["Disponible"],
+        _              => ["Disponible"]
+    };
+
+    private static string BadgeEstado(string e) => e switch
+    {
+        "Disponible"    => "badge-verde",
+        "Ocupada"       => "badge-rojo",
+        "Mantenimiento" => "badge-amarillo",
+        "Limpieza"      => "badge-azul",
+        _ => ""
+    };
+}

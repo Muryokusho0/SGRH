@@ -28,8 +28,9 @@ public sealed class CategoriaService : ApiServiceBase, ICategoriaService
     public CategoriaService(
         IHttpClientFactory factory,
         TokenStorageService tokenStorage,
-        IMemoryCache cache)
-        : base(factory, tokenStorage)
+        IMemoryCache cache,
+        ILogger<CategoriaService> logger)
+        : base(factory, tokenStorage, logger)
     {
         _cache = cache;
     }
